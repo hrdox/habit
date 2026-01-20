@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid" style="grid-template-columns: 1fr;">
+    <!-- Summary Cards -->
+    <div class="grid-3" style="margin-bottom: 2rem;">
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 2.5rem;">🔥</div>
+            <h3><span id="best-day">0</span></h3>
+            <p class="text-muted">Best Score (All Time)</p>
+        </div>
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 2.5rem;">⭐</div>
+            <h3><span id="avg-daily">0</span></h3>
+            <p class="text-muted">Daily Average</p>
+        </div>
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 2.5rem;">📈</div>
+            <h3><span id="total-score">0</span></h3>
+            <p class="text-muted">Total Points (Last 30 Days)</p>
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="grid-2">
+        <!-- Main Line Chart -->
+        <div class="card" style="grid-column: span 2;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>Overall Progress</h3>
+                <div>
+                    <select id="time-range" class="form-control" onchange="loadAnalytics()">
+                        <option value="7">Last 7 Days</option>
+                        <option value="30" selected>Last 30 Days</option>
+                        <option value="365">Last Year</option>
+                    </select>
+                </div>
+            </div>
+            <div style="height: 300px; position: relative;">
+                <canvas id="scoreChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Breakdown Chart -->
+        <div class="card">
+            <h3>Habits vs Prayers</h3>
+            <div style="height: 250px; position: relative;">
+                <canvas id="breakdownChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Radar Chart (Consistency) -->
+        <div class="card">
+            <h3>Consistency Overview</h3>
+            <div style="height: 250px; position: relative;">
+                <canvas id="consistencyChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let scoreChartInstance = null;
+    let breakdownChartInstance = null;
+    let consistencyChartInstance = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadAnalytics();
+    });
+
+    async function loadAnalytics() {
+        const days = document.getElementById('time-range').value;
+        try {
+            const res = await fetch(`/api/analytics_data?days=${days}`);
+            const data = await res.json();
+
+            // Update Summary
+            document.getElementById('best-day').innerText = data.summary.best_day;
+            document.getElementById('avg-daily').innerText = data.summary.avg_daily;
+            document.getElementById('total-score').innerText = data.summary.total_all_time;
+
+            // Render Charts
+            renderScoreChart(data);
+            renderBreakdownChart(data);
+            renderConsistencyChart(data);
+
+        } catch (e) {
+            console.error("Failed to load analytics:", e);
+        }
+    }
+
+    function renderScoreChart(data) {
+        const ctx = document.getElementById('scoreChart').getContext('2d');
+        if (scoreChartInstance) scoreChartInstance.destroy();
+
+        scoreChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [
+                    {
+                        label: 'Total Score',
+                        data: data.total_scores,
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    function renderBreakdownChart(data) {
+        const ctx = document.getElementById('breakdownChart').getContext('2d');
+        if (breakdownChartInstance) breakdownChartInstance.destroy();
+
+        breakdownChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.labels,
+                datasets: [
+                    {
+                        label: 'Habits',
+                        data: data.habit_scores,
+                        backgroundColor: '#10b981'
+                    },
+                    {
+                        label: 'Prayers',
+                        data: data.prayer_scores,
+                        backgroundColor: '#3b82f6'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: { mode: 'index', intersect: false },
+                },
+                scales: {
+                    x: { stacked: true },
+                    y: { stacked: true, beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    function renderConsistencyChart(data) {
+        // Simple aggregate for Radar
+        const totalHabit = data.habit_scores.reduce((a, b) => a + b, 0);
+        const totalPrayer = data.prayer_scores.reduce((a, b) => a + b, 0);
+        const maxPossible = Math.max(totalHabit, totalPrayer) || 100;
+
+        const ctx = document.getElementById('consistencyChart').getContext('2d');
+        if (consistencyChartInstance) consistencyChartInstance.destroy();
+
+        consistencyChartInstance = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Habit Score', 'Prayer Score'],
+                datasets: [{
+                    data: [totalHabit, totalPrayer],
+                    backgroundColor: ['#10b981', '#3b82f6']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+    }
+</script>
+{% endblock %}

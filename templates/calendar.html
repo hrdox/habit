@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Islamic Calendar & Special Days</h2>
+
+<div class="card" style="text-align: center;">
+    <h3>Today's Date</h3>
+    <h2 id="hijri-date">Loading Hijri Date...</h2>
+    <p class="text-muted">{{ now.strftime('%d %B %Y') }}</p>
+</div>
+
+<div class="card">
+    <h3>Upcoming Special Days (Estimated)</h3>
+    <ul style="list-style: none; padding: 0;">
+        <li class="habit-item">
+            <strong>Ramadan Starts</strong>
+            <span>~ March 1, 2025</span>
+        </li>
+        <li class="habit-item">
+            <strong>Eid al-Fitr</strong>
+            <span>~ March 30, 2025</span>
+        </li>
+        <li class="habit-item">
+            <strong>Eid al-Adha</strong>
+            <span>~ June 6, 2025</span>
+        </li>
+        <li class="habit-item">
+            <strong>Ashura</strong>
+            <span>~ July 6, 2025</span>
+        </li>
+    </ul>
+    <p class="text-muted" style="font-size: 0.8rem; margin-top: 1rem;">*Dates are subject to moon sighting.</p>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const date = new Date();
+        const hijri = new Intl.DateTimeFormat('en-TN-u-ca-islamic', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        }).format(date);
+        document.getElementById('hijri-date').textContent = hijri;
+    });
+</script>
+{% endblock %}

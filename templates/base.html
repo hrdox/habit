@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Habit & Deen Tracker</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Amiri&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- FullCalendar CSS -->
+    <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css' rel='stylesheet' />
+    <script>
+        // Inline Theme Script to prevent flash
+        (function () {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
+    </script>
+</head>
+
+<body>
+
+    {% if current_user.is_authenticated %}
+    <div id="app-container">
+        <aside>
+            <div class="brand" style="justify-content: space-between;">
+                <span>🚀 HabitFlow</span>
+                <!-- Mobile Close Button -->
+                <button id="mobile-sidebar-close" class="btn btn-outline mobile-only"
+                    style="padding: 0.2rem 0.6rem; font-size: 1.2rem;">&times;</button>
+            </div>
+            <ul class="nav-links">
+                <li><a href="{{ url_for('dashboard') }}"
+                        class="nav-link {{ 'active' if request.endpoint == 'dashboard' else '' }}">
+                        <span class="nav-icon">📊</span> Dashboard
+                    </a></li>
+                <li><a href="{{ url_for('habits_list') }}"
+                        class="nav-link {{ 'active' if 'habit' in request.endpoint else '' }}">
+                        <span class="nav-icon">✅</span> Habits
+                    </a></li>
+                <li><a href="{{ url_for('schedule_view') }}"
+                        class="nav-link {{ 'active' if 'schedule' in request.endpoint else '' }}">
+                        <span class="nav-icon">📅</span> Schedule
+                    </a></li>
+                <li><a href="{{ url_for('calendar_view') }}"
+                        class="nav-link {{ 'active' if 'calendar' in request.endpoint else '' }}">
+                        <span class="nav-icon">🗓️</span> Calendar View
+                    </a></li>
+                <li><a href="{{ url_for('prayers') }}"
+                        class="nav-link {{ 'active' if 'prayer' in request.endpoint else '' }}">
+                        <span class="nav-icon">🕌</span> Prayer & Deen
+                    </a></li>
+                <li><a href="{{ url_for('upload_schedule') }}"
+                        class="nav-link {{ 'active' if 'upload' in request.endpoint else '' }}">
+                        <span class="nav-icon">📤</span> Import Schedule
+                    </a></li>
+                <li><a href="{{ url_for('analytics_view') }}"
+                        class="nav-link {{ 'active' if 'analytics' in request.endpoint else '' }}">
+                        <span class="nav-icon">📈</span> Statistics
+                    </a></li>
+                <li style="margin-top: auto;">
+                    <a href="{{ url_for('logout') }}" class="nav-link">
+                        <span class="nav-icon">🚪</span> Logout
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <main>
+            <div class="top-bar">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button id="mobile-menu-toggle" class="btn btn-outline mobile-only"
+                        style="padding: 0.5rem;">☰</button>
+                    <div>
+                        <h2 style="margin:0;">{% block title %}Overview{% endblock %}</h2>
+                        <p class="text-muted" style="margin:0;">{{ now.strftime('%A, %B %d, %Y') }}</p>
+                    </div>
+                </div>
+                <div>
+                    <button id="theme-toggle" class="btn btn-outline" style="padding: 0.5rem;">🌙</button>
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="card"
+                style="background-color: {{ '#d1fae5' if category=='success' else '#fee2e2' }}; color: {{ '#065f46' if category=='success' else '#991b1b' }}; padding: 1rem; border: none;">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% else %}
+    <!-- Login/Register Layout -->
+    <div style="max-width: 450px; margin: 0 auto; padding-top: 5rem;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h1 style="color: var(--primary);">HabitFlow</h1>
+            <p class="text-muted">Master your day, elevate your spirituality.</p>
+        </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+        {% block auth_content %}{% endblock %}
+    </div>
+    {% endif %}
+
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
+</body>
+
+</html>

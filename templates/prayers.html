@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Islamic Worship & Prayer Tracker</h2>
+
+<div class="dashboard-grid">
+    <div class="card" style="text-align: center;">
+        <h3>Today's Prayers</h3>
+        <p class="text-muted">{{ log.date.strftime('%A, %B %d') }}</p>
+
+        <div class="prayer-list" style="margin-top: 2rem;">
+            {% for p in ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'] %}
+            <div class="prayer-item {{ 'completed' if getattr(log, p) else '' }}"
+                onclick="togglePrayer('{{ p }}', this)">
+                <div class="prayer-name">
+                    <span class="check-icon"></span>
+                    <h3 style="margin: 0; font-size: 1.1rem;">{{ p|capitalize }}</h3>
+                </div>
+                {% if getattr(log, p) %}
+                <span style="font-size: 0.8rem; color: var(--success); font-weight: 500;">Completed</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <div style="margin-top: 2rem;">
+            <h3>Spiritual Score</h3>
+            <div style="font-size: 3rem; font-weight: bold; color: var(--primary);">
+                <span id="spiritual-score-display">{{ log.spiritual_score }}</span>
+                <span style="font-size: 1.5rem; color: var(--text-muted);">/ 100</span>
+            </div>
+            <p class="text-muted">"Indeed, prayer prohibits immorality and wrongdoing." (Quran 29:45)</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>Why Track?</h3>
+        <p>Consistent prayer is the pillar of faith. Use this tracker not just to count, but to ensure you never miss a
+            connection with your Creator.</p>
+        <ul>
+            <li><strong>Fajr:</strong> Success in the morning.</li>
+            <li><strong>Dhuhr:</strong> Gratitude in the hustle.</li>
+            <li><strong>Asr:</strong> Patience in the decline of the day.</li>
+            <li><strong>Maghrib:</strong> Remembrance at sunset.</li>
+            <li><strong>Isha:</strong> Peace before sleep.</li>
+        </ul>
+        <a href="{{ url_for('islamic_hub') }}" class="btn btn-primary" style="margin-top: 1rem;">View Duas &
+            Calendar</a>
+    </div>
+</div>
+{% endblock %}

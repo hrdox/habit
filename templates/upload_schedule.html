@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h2>Upload Schedule</h2>
+        <p class="text-muted">Import your class routine from an image</p>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data" style="text-align: center;">
+        <div style="border: 2px dashed var(--border-color); padding: 3rem; border-radius: var(--radius-lg); margin-bottom: 1.5rem; cursor: pointer; transition: all 0.2s;"
+            class="upload-area" onclick="document.getElementById('file-input').click()">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📤</div>
+            <h3>Click or Drag File Here</h3>
+            <p class="text-muted">Supported: Images, Word, Excel, Text</p>
+            <input type="file" id="file-input" name="file" accept="image/*,.doc,.docx,.xls,.xlsx,.txt"
+                style="display: none;" onchange="updateFileName(this)">
+        </div>
+
+        <p id="file-name" style="margin-bottom: 1rem; font-weight: 500; display: none;"></p>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 1rem;">
+            Process & Import
+        </button>
+    </form>
+</div>
+
+<script>
+    function updateFileName(input) {
+        const nameDisplay = document.getElementById('file-name');
+        if (input.files && input.files.length > 0) {
+            nameDisplay.textContent = "Selected: " + input.files[0].name;
+            nameDisplay.style.display = 'block';
+            nameDisplay.style.color = 'var(--primary)';
+        }
+    }
+
+    // Simple drag and drop highlight
+    const dropZone = document.querySelector('.upload-area');
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--primary)';
+            dropZone.style.backgroundColor = 'hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.05)';
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            dropZone.style.borderColor = 'var(--border-color)';
+            dropZone.style.backgroundColor = '';
+        }, false);
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        document.getElementById('file-input').files = files;
+        updateFileName(document.getElementById('file-input'));
+    });
+</script>
+{% endblock %}

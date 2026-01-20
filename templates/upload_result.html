@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card" style="max-width: 800px; margin: 0 auto;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h2>Review Extracted Schedule</h2>
+        <p class="text-muted">We found the following items. Please review and edit before saving.</p>
+    </div>
+
+    <form action="{{ url_for('import_schedule_confirm') }}" method="POST">
+        {% if parsed_items %}
+        <div class="table-responsive">
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
+                        <th style="padding: 0.5rem;">Time</th>
+                        <th style="padding: 0.5rem;">Activity</th>
+                        <th style="padding: 0.5rem; width: 50px;">Include</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in parsed_items %}
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 0.5rem;">
+                            <input type="text" name="times" value="{{ item.time }}" style="width: 100px;">
+                        </td>
+                        <td style="padding: 0.5rem;">
+                            <input type="text" name="activities" value="{{ item.activity }}">
+                        </td>
+                        <td style="padding: 0.5rem; text-align: center;">
+                            <input type="checkbox" checked onclick="toggleRow(this)">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-warning">
+            Could not automatically detect clean time-based items. Please check the raw text below or try a clearer
+            file.
+        </div>
+        {% endif %}
+
+        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1rem;">
+            <a href="{{ url_for('upload_schedule') }}" class="btn btn-outline">Cancel</a>
+            <button type="submit" class="btn btn-primary" {% if not parsed_items %}disabled{% endif %}>
+                Confirm & Add to Schedule
+            </button>
+        </div>
+    </form>
+
+    <div style="margin-top: 2rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+        <h4 style="margin-bottom: 0.5rem; cursor: pointer;"
+            onclick="document.getElementById('raw-text').style.display = document.getElementById('raw-text').style.display === 'none' ? 'block' : 'none'">
+            Show Raw Text ⬇️
+        </h4>
+        <div id="raw-text"
+            style="display: none; background: var(--bg-body); padding: 1rem; border-radius: 0.5rem; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 0.9rem;">
+            <pre>{{ raw_text }}</pre>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleRow(checkbox) {
+        const row = checkbox.closest('tr');
+        const inputs = row.querySelectorAll('input[type="text"]');
+        inputs.forEach(input => {
+            input.disabled = !checkbox.checked;
+            if (checkbox.checked) {
+                row.style.opacity = '1';
+            } else {
+                row.style.opacity = '0.5';
+            }
+        });
+    }
+</script>
+{% endblock %}

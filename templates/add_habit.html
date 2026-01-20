@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Manage Habits</h2>
+<div class="dashboard-grid">
+    <!-- List of Habits -->
+    <div class="card">
+        <h3>Your Habits</h3>
+        {% if habits %}
+        <ul style="list-style: none; padding: 0;">
+            {% for h in habits %}
+            <li class="habit-item">
+                <div>
+                    <strong>{{ h.name }}</strong>
+                    <span class="text-muted"> - {{ h.frequency }}</span>
+                    <br><span style="font-size: 0.8rem;">{{ h.category }}</span>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p>No habits found.</p>
+        {% endif %}
+    </div>
+
+    <!-- Add Habit Form -->
+    <div class="card">
+        <h3>Add New Habit</h3>
+        <form action="{{ url_for('add_habit') }}" method="POST">
+            <div class="form-group">
+                <label>Habit Name</label>
+                <input type="text" name="name" placeholder="e.g. Read Quran, Drink Water" required>
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select name="category">
+                    <option value="General">General</option>
+                    <option value="Health">Health</option>
+                    <option value="Study">Study</option>
+                    <option value="Spiritual">Spiritual (Deen)</option>
+                    <option value="Social">Social</option>
+                </select>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label>Priority (1-5)</label>
+                    <select name="priority">
+                        <option value="1">1 - Low</option>
+                        <option value="2">2 - Medium-Low</option>
+                        <option value="3" selected>3 - Medium</option>
+                        <option value="4">4 - High</option>
+                        <option value="5">5 - Critical</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Difficulty (1-10)</label>
+                    <select name="difficulty">
+                        <option value="1">1 - Trivial</option>
+                        <option value="3" selected>3 - Easy</option>
+                        <option value="5">5 - Moderate</option>
+                        <option value="8">8 - Hard</option>
+                        <option value="10">10 - Heroic</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label>Target Value</label>
+                    <input type="number" name="target_value" value="1" min="1">
+                </div>
+                <div class="form-group">
+                    <label>Unit (Optional)</label>
+                    <input type="text" name="unit" placeholder="mins, pages">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Identity Label (Optional)</label>
+                <input type="text" name="identity_label" placeholder='"I am a consistent reader"'>
+                <small class="text-muted" style="display:block; margin-top:0.2rem;">Who do you become by doing
+                    this?</small>
+            </div>
+
+            <div class="form-group">
+                <label>Frequency</label>
+                <select name="frequency">
+                    <option value="Daily">Daily</option>
+                    <option value="Weekly">Weekly</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Create Habit</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

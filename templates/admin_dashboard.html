@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Admin Dashboard</h2>
+
+<div class="grid-3">
+    <div class="card">
+        <h3>Total Users</h3>
+        <p style="font-size: 2rem; font-weight: bold; color: var(--primary);">{{ stats.users }}</p>
+    </div>
+    <div class="card">
+        <h3>Total Habits</h3>
+        <p style="font-size: 2rem; font-weight: bold; color: var(--accent);">{{ stats.habits }}</p>
+    </div>
+    <div class="card">
+        <h3>Prayer Logs</h3>
+        <p style="font-size: 2rem; font-weight: bold; color: var(--success);">{{ stats.prayers_logged }}</p>
+    </div>
+</div>
+
+<div class="card">
+    <h3>User Management</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="text-align: left; border-bottom: 2px solid var(--border);">
+                <th style="padding: 0.5rem;">ID</th>
+                <th style="padding: 0.5rem;">Username</th>
+                <th style="padding: 0.5rem;">Role</th>
+                <th style="padding: 0.5rem;">Joined</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in users %}
+            <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 0.5rem;">{{ u.id }}</td>
+                <td style="padding: 0.5rem;">{{ u.username }}</td>
+                <td style="padding: 0.5rem;">
+                    <span class="badge {{ 'badge-blue' if u.role == 'admin' else 'badge-green' }}">
+                        {{ u.role }}
+                    </span>
+                </td>
+                <td style="padding: 0.5rem;">{{ u.join_date.strftime('%Y-%m-%d') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

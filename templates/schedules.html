@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>School/University Schedule</h2>
+
+{% if not schedule %}
+<div class="card">
+    <h3>Start a New Schedule</h3>
+    <form method="POST">
+        <div class="form-group">
+            <label>Schedule Name (e.g., Spring 2026)</label>
+            <input type="text" name="schedule_name" required>
+        </div>
+        <button type="submit" class="btn btn-primary">Create Schedule</button>
+    </form>
+</div>
+{% else %}
+<div class="card">
+    <h3>{{ schedule.name }}</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <p class="text-muted" style="margin: 0;">Manage your weekly routine here.</p>
+        <form action="{{ url_for('delete_schedule', id=schedule.id) }}" method="POST"
+            onsubmit="return confirm('Are you sure you want to delete the ENTIRE schedule \'{{ schedule.name }}\'? All classes in it will be lost.');">
+            <button type="submit" class="btn" style="background-color: #ef4444; color: white;">Delete Schedule</button>
+        </form>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Add Class/Routine Form -->
+    <div class="card">
+        <h3>Add Class / Routine</h3>
+        <form method="POST">
+            <div class="form-group">
+                <label>Title (e.g., Math 101)</label>
+                <input type="text" name="title" required>
+            </div>
+            <div class="form-group">
+                <label>Day</label>
+                <select name="day">
+                    <option value="Monday">Monday</option>
+                    <option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option>
+                    <option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option>
+                    <option value="Saturday">Saturday</option>
+                    <option value="Sunday">Sunday</option>
+                </select>
+            </div>
+            <div class="form-group" style="display: flex; gap: 1rem;">
+                <div style="flex: 1;">
+                    <label>Start Time</label>
+                    <input type="time" name="start_time" required>
+                </div>
+                <div style="flex: 1;">
+                    <label>End Time</label>
+                    <input type="time" name="end_time" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Location (Optional)</label>
+                <input type="text" name="location">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Add to Schedule</button>
+        </form>
+    </div>
+
+    <!-- Weekly Timetable View -->
+    <div class="card">
+        <h3>Timetable View</h3>
+        {% set days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+        {% for day in days %}
+        {% set items = schedule.items|selectattr('day_of_week', 'equalto', day)|list %}
+        {% if items %}
+        <div style="margin-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
+            <h4 style="margin-bottom: 0.5rem; color: var(--primary);">{{ day }}</h4>
+            <ul style="list-style: none; padding-left: 0;">
+                {% for item in items|sort(attribute='start_time') %}
+                <li
+                    style="margin-bottom: 0.5rem; font-size: 0.9rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <strong>{{ item.start_time.strftime('%I:%M %p') }} - {{ item.end_time.strftime('%I:%M %p')
+                            }}</strong>: {{ item.title }}
+                        <span class="text-muted">({{ item.location }})</span>
+                    </div>
+                    <form action="{{ url_for('delete_routine', id=item.id) }}" method="POST" style="display:inline;"
+                        onsubmit="return confirm('Delete this class?');">
+                        <button type="submit" class="btn"
+                            style="background-color: #ef4444; color: white; padding: 0.1rem 0.4rem; font-size: 0.7rem;">Delete</button>
+                    </form>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}
