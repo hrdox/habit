@@ -62,6 +62,10 @@ def register():
             flash('Username already exists', 'danger')
             return redirect(url_for('register'))
             
+        if User.query.filter_by(email=email).first():
+            flash('Email already registered. Please login or use a different email.', 'danger')
+            return redirect(url_for('register'))
+            
         user = User(username=username, email=email)
         user.set_password(password)
         db.session.add(user)
@@ -77,11 +81,14 @@ def login():
         password = request.form.get('password')
         user = User.query.filter_by(username=username).first()
         
-        if user and user.check_password(password):
-            login_user(user)
-            return redirect(url_for('dashboard'))
+        if user:
+            if user.check_password(password):
+                login_user(user)
+                return redirect(url_for('dashboard'))
+            else:
+                flash('Incorrect password. Please try again.', 'danger')
         else:
-            flash('Invalid username or password', 'danger')
+            flash('Username not found. Please check your spelling or register.', 'danger')
     return render_template('login.html')
 
 @app.route('/logout')
@@ -103,7 +110,7 @@ def guest_login():
     db.session.add(guest)
     db.session.commit()
     login_user(guest)
-    flash('Logged in as Guest. Data is temporary/local to this account.', 'info')
+    flash('Logged in as Guest. Data is temporary', 'info')
     return redirect(url_for('dashboard'))
 
 # --- Admin Routes ---

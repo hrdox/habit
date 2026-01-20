@@ -45,3 +45,10 @@ python test_app.py
 - **Dashboard**: Your central hub for today's tasks and prayers.
 - **Calendar**: View your upcoming schedule.
 - **Dark Mode**: Toggle via the moon icon in the top right.
+
+
+
+
+git add .
+git commit -m "Update"
+git push

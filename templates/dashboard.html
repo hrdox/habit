@@ -7,59 +7,6 @@
         <h2>Welcome back, {{ current_user.username }}!</h2>
         <p class="text-muted">{{ today.strftime('%A, %B %d, %Y') }}</p>
 
-        <!-- 1. Day Overview (New System V2 Layer) -->
-        <div class="card"
-            style="border-left: 5px solid var(--primary); background: linear-gradient(to right, var(--bg-card), rgba(var(--primary-rgb), 0.05));">
-            <h3 style="display: flex; justify-content: space-between; align-items: center;">
-                Day Overview
-                <small style="font-size: 0.8rem; opacity: 0.7;">Energy: {{ day.energy_level }} | Mood: {{ day.mood
-                    }}</small>
-            </h3>
-            <form method="POST" action="{{ url_for('dashboard') }}" id="day-form">
-                <div style="margin-bottom: 1rem;">
-                    <label style="font-weight: 600; font-size: 0.9rem;">🎯 Daily Intention</label>
-                    <input type="text" name="intention" value="{{ day.intention or '' }}"
-                        placeholder="What is your ONE main focus today?"
-                        style="width: 100%; padding: 0.8rem; margin-top: 0.5rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;"
-                        onblur="this.form.submit()">
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
-                    <div>
-                        <label style="font-weight: 600; font-size: 0.9rem;">⚡ Energy Level</label>
-                        <div class="range-selector" style="display: flex; gap: 0.2rem; margin-top: 0.5rem;">
-                            <!-- Simple Select for reliability -->
-                            <select name="energy_level" class="form-select" onchange="this.form.submit()"
-                                style="width: 100%; padding: 0.5rem; border-radius: 6px;">
-                                <option value="1" {% if day.energy_level==1 %}selected{% endif %}>1 - Exhausted</option>
-                                <option value="2" {% if day.energy_level==2 %}selected{% endif %}>2 - Low</option>
-                                <option value="3" {% if day.energy_level==3 %}selected{% endif %}>3 - Neutral</option>
-                                <option value="4" {% if day.energy_level==4 %}selected{% endif %}>4 - Good</option>
-                                <option value="5" {% if day.energy_level==5 %}selected{% endif %}>5 - Peak</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <label style="font-weight: 600; font-size: 0.9rem;">😊 Mood</label>
-                        <select name="mood" class="form-select" onchange="this.form.submit()"
-                            style="width: 100%; padding: 0.5rem; border-radius: 6px;">
-                            <option value="1" {% if day.mood==1 %}selected{% endif %}>1 - Sad/Anxious</option>
-                            <option value="2" {% if day.mood==2 %}selected{% endif %}>2 - Stressed</option>
-                            <option value="3" {% if day.mood==3 %}selected{% endif %}>3 - Okay</option>
-                            <option value="4" {% if day.mood==4 %}selected{% endif %}>4 - Happy</option>
-                            <option value="5" {% if day.mood==5 %}selected{% endif %}>5 - Amazing</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label style="font-weight: 600; font-size: 0.9rem;">📝 End of Day Reflection</label>
-                    <textarea name="reflection" placeholder="How did the day go? What did you learn?"
-                        style="width: 100%; height: 80px; padding: 0.8rem; margin-top: 0.5rem; border: 1px solid var(--border-color); border-radius: 8px;"
-                        onblur="this.form.submit()">{{ day.reflection or '' }}</textarea>
-                </div>
-            </form>
-        </div>
 
         <!-- 2. Schedule Section -->
         <div class="card">
@@ -150,6 +97,61 @@
                         prayer_log.spiritual_score }}</span> / 100</p>
             </div>
         </div>
+
+        <!-- 1. Day Overview (New System V2 Layer) -->
+        <div class="card"
+            style="border-left: 5px solid var(--primary); background: linear-gradient(to right, var(--bg-card), rgba(var(--primary-rgb), 0.05));">
+            <h3 style="display: flex; justify-content: space-between; align-items: center;">
+                Day Overview
+                <small style="font-size: 0.8rem; opacity: 0.7;">Energy: {{ day.energy_level }} | Mood: {{ day.mood
+                    }}</small>
+            </h3>
+            <form method="POST" action="{{ url_for('dashboard') }}" id="day-form">
+                <div style="margin-bottom: 1rem;">
+                    <label style="font-weight: 600; font-size: 0.9rem;">🎯 Daily Intention</label>
+                    <input type="text" name="intention" value="{{ day.intention or '' }}"
+                        placeholder="What is your ONE main focus today?"
+                        style="width: 100%; padding: 0.8rem; margin-top: 0.5rem; border: 1px solid var(--border-color); border-radius: 8px; font-size: 1rem;"
+                        onblur="this.form.submit()">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div>
+                        <label style="font-weight: 600; font-size: 0.9rem;">⚡ Energy Level</label>
+                        <div class="range-selector" style="display: flex; gap: 0.2rem; margin-top: 0.5rem;">
+                            <!-- Simple Select for reliability -->
+                            <select name="energy_level" class="form-select" onchange="this.form.submit()"
+                                style="width: 100%; padding: 0.5rem; border-radius: 6px;">
+                                <option value="1" {% if day.energy_level==1 %}selected{% endif %}>1 - Exhausted</option>
+                                <option value="2" {% if day.energy_level==2 %}selected{% endif %}>2 - Low</option>
+                                <option value="3" {% if day.energy_level==3 %}selected{% endif %}>3 - Neutral</option>
+                                <option value="4" {% if day.energy_level==4 %}selected{% endif %}>4 - Good</option>
+                                <option value="5" {% if day.energy_level==5 %}selected{% endif %}>5 - Peak</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; font-size: 0.9rem;">😊 Mood</label>
+                        <select name="mood" class="form-select" onchange="this.form.submit()"
+                            style="width: 100%; padding: 0.5rem; border-radius: 6px;">
+                            <option value="1" {% if day.mood==1 %}selected{% endif %}>1 - Sad/Anxious</option>
+                            <option value="2" {% if day.mood==2 %}selected{% endif %}>2 - Stressed</option>
+                            <option value="3" {% if day.mood==3 %}selected{% endif %}>3 - Okay</option>
+                            <option value="4" {% if day.mood==4 %}selected{% endif %}>4 - Happy</option>
+                            <option value="5" {% if day.mood==5 %}selected{% endif %}>5 - Amazing</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label style="font-weight: 600; font-size: 0.9rem;">📝 End of Day Reflection</label>
+                    <textarea name="reflection" placeholder="How did the day go? What did you learn?"
+                        style="width: 100%; height: 80px; padding: 0.8rem; margin-top: 0.5rem; border: 1px solid var(--border-color); border-radius: 8px;"
+                        onblur="this.form.submit()">{{ day.reflection or '' }}</textarea>
+                </div>
+            </form>
+        </div>
+
     </div>
 
     <!-- Sidebar Column -->
