@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card" style="max-width: 600px; margin: 0 auto;">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <h2>Edit Routine Item</h2>
+        <p class="text-muted">Update the details for {{ item.title }}</p>
+    </div>
+
+    <form method="POST">
+        <div class="form-group">
+            <label>Title (e.g., Math 101)</label>
+            <input type="text" name="title" value="{{ item.title }}" required>
+        </div>
+        <div class="form-group">
+            <label>Day</label>
+            <select name="day">
+                {% for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                <option value="{{ day }}" {% if item.day_of_week==day %}selected{% endif %}>{{ day }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group" style="display: flex; gap: 1rem;">
+            <div style="flex: 1;">
+                <label>Start Time</label>
+                <input type="time" name="start_time" value="{{ item.start_time.strftime('%H:%M') }}" required>
+            </div>
+            <div style="flex: 1;">
+                <label>End Time</label>
+                <input type="time" name="end_time" value="{{ item.end_time.strftime('%H:%M') }}" required>
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Location (Optional)</label>
+            <input type="text" name="location" value="{{ item.location or '' }}">
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+            <a href="{{ url_for('schedule_view') }}" class="btn btn-outline"
+                style="flex: 1; text-align: center;">Cancel</a>
+            <button type="submit" class="btn btn-primary" style="flex: 2;">Save Changes</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

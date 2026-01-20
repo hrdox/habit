@@ -376,6 +376,32 @@ def delete_routine(id):
     flash('Class/Routine deleted.', 'success')
     return redirect(url_for('schedule_view'))
 
+@app.route('/schedule/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
+def edit_routine(id):
+    item = RoutineItem.query.get_or_404(id)
+    if item.schedule.owner != current_user:
+        flash('Unauthorized', 'danger')
+        return redirect(url_for('schedule_view'))
+        
+    if request.method == 'POST':
+        item.title = request.form.get('title')
+        item.day_of_week = request.form.get('day')
+        start = request.form.get('start_time')
+        end = request.form.get('end_time')
+        item.location = request.form.get('location')
+        
+        if start:
+            item.start_time = datetime.strptime(start, '%H:%M').time()
+        if end:
+            item.end_time = datetime.strptime(end, '%H:%M').time()
+            
+        db.session.commit()
+        flash('Routine updated!', 'success')
+        return redirect(url_for('schedule_view'))
+        
+    return render_template('edit_routine.html', item=item)
+
 @app.route('/schedule/destroy/<int:id>', methods=['POST'])
 @login_required
 def delete_schedule(id):
