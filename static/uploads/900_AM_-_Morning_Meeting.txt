@@ -1,3 +1,18 @@
-9:00 AM - Morning Meeting
-10:30 Study Session
-2:00pm Gym
+Class Routine
+SL	Course Code	Section	Day	Time	Room
+1	CSC 197	A	Saturday	09:35am – 10:35am	607
+2	CSC 469	I	Saturday	11:45am – 12:45pm	924
+3	CSC 347	B	Saturday	01:10pm – 02:10pm	620
+4	CSC 197	A	Sunday	09:35am – 10:35am	912
+5	CSC 470	I	Sunday	10:40am – 11:40am	Comlab9
+6	CSC 470	I	Sunday	11:45am – 12:45pm	Comlab9
+7	STA 240	E	Sunday	04:25pm – 05:25pm	801
+8	CSC 461	D	Monday	08:30am – 09:30am	1023
+9	CSC 347	B	Monday	01:10pm – 02:10pm	621
+10	STA 240	E	Monday	04:25pm – 05:25pm	801
+11	CSC 461	D	Tuesday	08:30am – 09:30am	520
+12	CSC 469	I	Tuesday	11:45am – 12:45pm	821
+13	CSC 461	D	Wednesday	08:30am – 09:30am	521
+14	CSC 197	A	Wednesday	09:35am – 10:35am	913
+15	CSC 469	I	Wednesday	11:45am – 12:45pm	821
+16	STA 240	E	Wednesday	04:25pm – 05:25pm	801

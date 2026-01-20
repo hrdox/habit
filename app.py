@@ -940,6 +940,9 @@ def parse_schedule_items(text):
     items = []
     lines = text.split('\n')
     
+    # Days reference
+    days_list = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+    
     # Regex for time formats: 10:00, 10.30, 10am, 10:00AM
     time_pattern = re.compile(r'(\d{1,2}[:.]\d{2})\s*(?:[APap][Mm])?|(\d{1,2})\s*[APap][Mm]')
     
@@ -947,17 +950,42 @@ def parse_schedule_items(text):
         line = line.strip()
         if not line: continue
         
+        # Check if line contains a day name
+        line_day = None
+        for day in days_list:
+            if day in line:
+                line_day = day
+                break
+        
         match = time_pattern.search(line)
         if match:
             # Found a potential time
             time_str = match.group(0)
-            # Remove the time part to get the activity description
-            activity = line.replace(time_str, '').strip(' -:|')
             
-            # Normalize time string (Basic normalization)
+            # Clean up the line to extract meaningful activity
+            # If we found a day, we want to include it or use it as context
+            
+            # Remove the time part
+            clean_line = line.replace(time_str, '').strip(' -:| \t')
+            
+            # If it's a table row like "1 CSC 197 A Saturday ...", 
+            # we want to extract the course code and day.
+            
+            # Heuristic: split by tabs or multiple spaces
+            parts = re.split(r'\t|\s{2,}', clean_line)
+            
+            activity = ""
+            if line_day:
+                # Try to find the part before the day
+                parts_before_day = clean_line.split(line_day)[0].strip(' \t-|')
+                activity = f"{line_day}: {parts_before_day}"
+            else:
+                activity = clean_line
+            
+            # Normalize time string
             time_val = time_str.replace('.', ':')
             
-            if len(activity) > 2: # Ignore noise
+            if len(activity) > 2: 
                 items.append({
                     'time': time_val,
                     'activity': activity
