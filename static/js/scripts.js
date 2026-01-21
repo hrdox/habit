@@ -76,11 +76,20 @@ function showToast(message, type = 'success') {
     setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(10px)';
-        toast.style.transition = 'opacity 0.3s, transform 0.3s';
 
-        toast.addEventListener('transitionend', () => {
-            if (toast.parentElement) toast.remove();
-        });
+        // Remove after transition
+        let removed = false;
+        const removeToast = () => {
+            if (!removed) {
+                if (toast.parentElement) toast.remove();
+                removed = true;
+            }
+        };
+
+        toast.addEventListener('transitionend', removeToast);
+
+        // Safety fallback if transitionend doesn't fire
+        setTimeout(removeToast, 400);
     }, 3000);
 }
 
@@ -98,19 +107,43 @@ window.toggleHabit = async function (id, btn) {
         const data = await res.json();
 
         if (data.success) {
-            if (data.new_status) {
-                // Now Done
-                btn.classList.remove('btn-primary');
-                // Use inline style override or secondary class
-                btn.style.backgroundColor = 'var(--secondary)';
-                btn.textContent = 'Undo';
-                showToast('Habit completed! Keep it up!', 'success');
+            const isMultistep = data.target_value > 1;
+
+            if (isMultistep) {
+                // Update counter if it exists
+                const counter = btn.parentElement.querySelector('span');
+                if (counter) {
+                    counter.textContent = `${data.value_done} / ${data.target_value}`;
+                }
+
+                if (data.new_status) {
+                    btn.classList.remove('btn-primary');
+                    btn.style.backgroundColor = 'var(--secondary)';
+                    btn.textContent = 'Target Hitted (Reset)';
+                    showToast('Goal reached! Amazing work!', 'success');
+                } else {
+                    btn.classList.add('btn-primary');
+                    btn.style.backgroundColor = '';
+                    btn.textContent = '+1 Track';
+                    if (data.value_done === 0) {
+                        showToast('Habit reset.', 'success');
+                    } else {
+                        showToast(`Progress: ${data.value_done}/${data.target_value}`, 'success');
+                    }
+                }
             } else {
-                // Now Not Done
-                btn.classList.add('btn-primary');
-                btn.style.backgroundColor = '';
-                btn.textContent = 'Mark Done';
-                showToast('Habit status reset.', 'success'); // Using success type for neutral info too
+                // Simple Toggle
+                if (data.new_status) {
+                    btn.classList.remove('btn-primary');
+                    btn.style.backgroundColor = 'var(--secondary)';
+                    btn.textContent = 'Undo';
+                    showToast('Habit completed!', 'success');
+                } else {
+                    btn.classList.add('btn-primary');
+                    btn.style.backgroundColor = '';
+                    btn.textContent = 'Mark Done';
+                    showToast('Habit status reset.', 'success');
+                }
             }
         } else {
             showToast(data.error || 'Failed to update habit', 'error');

@@ -170,6 +170,22 @@ def index():
         return redirect(url_for('dashboard'))
     return redirect(url_for('login'))
 
+def recalculate_day_score(day_id):
+    """
+    Sum up all points for a given day (Habits, Prayers, Schedule).
+    """
+    from models import HabitLog, PrayerLog, ScheduleLog, Day
+    day = Day.query.get(day_id)
+    if not day: return 0
+    
+    habit_points = db.session.query(db.func.sum(HabitLog.points)).filter(HabitLog.day_id == day_id).scalar() or 0
+    prayer_points = db.session.query(db.func.sum(PrayerLog.spiritual_score)).filter(PrayerLog.day_id == day_id).scalar() or 0
+    schedule_points = db.session.query(db.func.sum(ScheduleLog.points)).filter(ScheduleLog.day_id == day_id, ScheduleLog.status == True).scalar() or 0
+    
+    day.total_score = int(habit_points + prayer_points + schedule_points)
+    db.session.commit()
+    return day.total_score
+
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
@@ -196,7 +212,7 @@ def dashboard():
 
     # Get habits for today
     habits = Habit.query.filter_by(user_id=current_user.id, is_paused=False).all()
-    habit_status = {}
+    habit_logs = {}
     for h in habits:
         log = HabitLog.query.filter_by(habit_id=h.id, date=today).first()
         # Ensure log is linked to day
@@ -204,7 +220,7 @@ def dashboard():
             log.day_id = current_day.id
             db.session.commit()
             
-        habit_status[h.id] = log.status if log else False
+        habit_logs[h.id] = log
 
     # Get Prayer status
     prayer_log = PrayerLog.query.filter_by(user_id=current_user.id, date=today).first()
@@ -234,7 +250,7 @@ def dashboard():
 
     return render_template('dashboard.html', 
                            habits=habits, 
-                           habit_status=habit_status, 
+                           habit_logs=habit_logs, 
                            prayer_log=prayer_log,
                            routines=todays_routines,
                            schedule_status=schedule_status,
@@ -342,39 +358,77 @@ def toggle_habit(habit_id):
 
     log = HabitLog.query.filter_by(habit_id=habit.id, date=today).first()
     
+    # Check if this is a simple toggle or increment
+    is_multistep = habit.target_value > 1
+    
     if log:
-        # Toggle Logic: If done, mark undone (0). If undone, mark target.
-        if log.status:
-            log.status = False
-            log.value_done = 0
-            log.points = 0
+        if is_multistep:
+            # Increment logic
+            # If already at target, reset to 0 (Looping behavior for easy correction)
+            # OR allow explicit undo. Let's do: Increment until target, then one more click resets to 0.
+            if log.value_done >= habit.target_value:
+                log.value_done = 0
+                log.status = False
+                log.points = 0
+            else:
+                log.value_done += 1
+                # Check if now complete
+                if log.value_done >= habit.target_value:
+                    log.status = True
+                    log.points = habit.points
+                else:
+                    log.status = False
+                    # Pro-rated points? (TotalPoints * (Current / Target))
+                    # Let's keep points simple: Only on completion? 
+                    # User asked for "points for repeating".
+                    # So we calculate fractional points.
+                    points_per_unit = habit.points / habit.target_value
+                    log.points = int(points_per_unit * log.value_done)
         else:
-            log.status = True
-            log.value_done = habit.target_value
-            log.points = habit.points # Full points
-            
+            # Simple Toggle (Binary)
+            if log.status:
+                log.status = False
+                log.value_done = 0
+                log.points = 0
+            else:
+                log.status = True
+                log.value_done = habit.target_value
+                log.points = habit.points
+
         if log.day_id is None: log.day_id = current_day.id
+            
     else:
-        # First time today: Assume success (Target Value)
+        # First interaction
+        # If multistep, start at 1. Else start at target.
+        initial_value = 1 if is_multistep else habit.target_value
+        initial_status = (initial_value >= habit.target_value)
+        
+        # Points
+        points = 0
+        if initial_status:
+            points = habit.points
+        elif is_multistep:
+             points = int((habit.points / habit.target_value) * 1)
+
         log = HabitLog(
             habit_id=habit.id, 
             date=today, 
-            status=True, 
+            status=initial_status, 
             day_id=current_day.id,
-            value_done=habit.target_value,
-            points=habit.points
+            value_done=initial_value,
+            points=points
         )
         db.session.add(log)
     
-    # Update Day Total Score (Simple Sum)
-    # We should re-sum all logs for accuracy, or just delta. Re-sum is safer.
     db.session.commit()
+    recalculate_day_score(current_day.id)
     
-    # Recalculate Day Score
-    # Fetch all habit logs for today + prayer score
-    # For now, just simplistic update
-    
-    return jsonify({'success': True, 'new_status': log.status})
+    return jsonify({
+        'success': True, 
+        'new_status': log.status, 
+        'value_done': log.value_done, 
+        'target_value': habit.target_value
+    })
 
 # --- Schedule Routes ---
 @app.route('/schedule', methods=['GET', 'POST'])
@@ -439,6 +493,7 @@ def toggle_routine(id):
         db.session.add(log)
     
     db.session.commit()
+    recalculate_day_score(current_day.id)
     return jsonify({'success': True, 'new_status': log.status})
 
 @app.route('/schedule/delete/<int:id>', methods=['POST'])
@@ -530,6 +585,7 @@ def prayers():
             log.spiritual_score = score
             
             db.session.commit()
+            recalculate_day_score(log.day_id)
             return jsonify({'success': True, 'score': score})
             
     return render_template('prayers.html', log=log)
@@ -556,7 +612,7 @@ def init_db():
         
         candidates = [
             Dua(title="Morning Dua", arabic_text="ٱلْحَمْدُ لِلَّٰهِ ٱلَّذِي أَحْيَانَا بَعْدَ مَا أَمَاتَنَا وَإِلَيْهِ ٱلنُّشُورُ", english_meaning="All praise is for Allah who gave us life after having taken it from us and unto Him is the resurrection.", bangla_meaning="সমস্ত প্রশংসা আল্লাহর জন্য, যিনি আমাদের মৃত্যুর পর জীবন দান করেছেন এবং তাঁরই দিকে আমাদের পুনরুত্থান।", category="Morning"),
-            Dua(title="Before Sleep", arabic_text="بِاسْمِكَ رَبِّ وَضَعْتُ جَنْبِي، وَبِكَ أَرْفَعُهُ", english_meaning="In Your name my Lord, I lie down, and in Your name I rise.", bangla_meaning="হে আমার রব! আপনার নামেই আমি আমার পার্শ্বদেশ বিছানায় রাখলাম এবং আপনার নামেই আমি তা উঠাবো।", category="Evening"),
+            Dua(title="Before Sleep", arabic_text="بِاسْمِكَ رَبِّ وَضَعْتُ جَنْبِي، وَبِكَ أَرْفَعُهُ", english_meaning="In Your name my Lord, I lie down, and in Your name I rise.", bangla_meaning="হে আমার রব! আপনার নামেই আমি আমি আমার পার্শ্বদেশ বিছানায় রাখলাম এবং আপনার নামেই আমি তা উঠাবো।", category="Evening"),
             Dua(title="For Knowledge", arabic_text="رَّبِّ زِدْنِى عِلْمًا", english_meaning="My Lord, increase me in knowledge.", bangla_meaning="হে আমার প্রতিপালক! আমার জ্ঞান বৃদ্ধি করে দিন।", category="Knowledge"),
             Dua(title="For Parents", arabic_text="رَّبِّ ارْحَمْهُمَا كَمَا رَبَّيَانِي صَغِيرًا", english_meaning="My Lord, have mercy upon them [my parents] as they brought me up [when I was] small.", bangla_meaning="হে আমার প্রতিপালক! তাদের উভয়ের প্রতি দয়া করুন, যেমন তারা আমাকে শৈশবে লালন-পালন করেছেন।", category="Family"),
             Dua(title="Before Eating", arabic_text="بِسْمِ اللَّهِ", english_meaning="In the name of Allah.", bangla_meaning="আল্লাহর নামে।", category="Daily"),
@@ -564,7 +620,13 @@ def init_db():
             Dua(title="Leaving Home", arabic_text="بِسْمِ اللهِ تَوَكَّلْتُ عَلَى اللهِ، لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللهِ", english_meaning="In the name of Allah, I place my trust in Allah; there is no might and no power except by Allah.", bangla_meaning="আল্লাহর নামে, আমি আল্লাহর উপর ভরসা করলাম। আল্লাহর সাহায্য ছাড়া কোন ক্ষমতা ও শক্তি নেই।", category="Travel"),
             Dua(title="Entering Mosque", arabic_text="اللَّهُمَّ افْتَحْ لِي أَبْوَابَ رَحْمَتِكَ", english_meaning="O Allah, open for me the doors of Your mercy.", bangla_meaning="হে আল্লাহ! আমার জন্য আপনার রহমতের দরজাগুলো খুলে দিন।", category="Mosque"),
             Dua(title="For Forgiveness", arabic_text="أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ", english_meaning="I seek forgiveness from Allah and turn to Him in repentance.", bangla_meaning="আমি আল্লাহর কাছে ক্ষমা প্রার্থনা করছি এবং তাঁর দিকে তওবা করছি।", category="Forgiveness"),
-            Dua(title="When in Distress", arabic_text="يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ", english_meaning="O Ever Living, O Self-Subsisting and Supporter of all, by Your mercy I seek assistance.", bangla_meaning="হে চিরঞ্জীব, হে চিরস্থায়ী! আমি আপনার রহহমতের উসিলায় সাহায্য প্রার্থনা করছি।", category="General")
+            Dua(title="When in Distress", arabic_text="يَا حَيُّ يَا قَيُّومُ بِرَحْمَتِكَ أَسْتَغِيثُ", english_meaning="O Ever Living, O Self-Subsisting and Supporter of all, by Your mercy I seek assistance.", bangla_meaning="হে চিরঞ্জীব, হে চিরস্থায়ী! আমি আপনার রহহমতের উসিলায় সাহায্য প্রার্থনা করছি।", category="General"),
+            Dua(title="For Protection", arabic_text="بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ وَهُوَ السَّمِيعُ الْعَلِيمُ", english_meaning="In the name of Allah, with whose name nothing on earth or in the sky can harm. He is the All-Hearing, All-Knowing.", bangla_meaning="আল্লাহর নামে, যাঁর নামের বরকতে আসমান ও যমিনের কোনো কিছুই ক্ষতি করতে পারে না, তিনি সর্বশ্রোতা ও সর্বজ্ঞ।", category="Protection"),
+            Dua(title="For Patience", arabic_text="رَبَّنَا أَفْرِغْ عَلَيْنَا صَبْرًا وَثَبِّتْ أَقْدَامَنَا وَانصُرْنَا عَلَى الْقَوْمِ الْكَافِرِينَ", english_meaning="Our Lord, pour upon us patience and plant firmly our feet and give us victory over the disbelieving people.", bangla_meaning="হে আমাদের প্রতিপালক! আমাদের ধৈর্য দান করুন, আমাদের পদযুগল অবিচলিত রাখুন এবং কাফের সম্প্রদায়ের বিরুদ্ধে আমাদের সাহায্য করুন।", category="Hardship"),
+            Dua(title="For Ease", arabic_text="اللَّهُمَّ لَا سَهْلَ إِلَّا مَا جَعَلْتَهُ سَهْلًا، وَأَنْتَ تَجْعَلُ الْحَزْنَ إِذَا شِئْتَ سَهْلًا", english_meaning="O Allah, there is no ease except in what You have made easy, and You make the difficulty, if You will, easy.", bangla_meaning="হে আল্লাহ! আপনি যা সহজ করেছেন তা ছাড়া কোনো কিছুই সহজ নয়। আর যখন আপনি চান, তখন কঠিনকেও সহজ করে দেন।", category="Hardship"),
+            Dua(title="For Anxiety", arabic_text="اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ، وَالْعَجْزِ وَالْكَسَلِ، وَالْبُخْلِ وَالْجُبْنِ، وَضَلَعِ الدَّيْنِ، وَغَلَبَةِ الرِّجَالِ", english_meaning="O Allah, I seek refuge in You from anxiety and sorrow, weakness and laziness, miserliness and cowardice, the burden of debts and from being overpowered by men.", bangla_meaning="হে আল্লাহ! আমি আপনার কাছে আশ্রয় চাই দুশ্চিন্তা ও দুঃখ থেকে, অক্ষমতা ও অলসতা থেকে, কৃপণতা ও ভীরুতা থেকে, ঋণের বোঝা ও মানুষের প্রাধান্য বিস্তার থেকে।", category="Anxiety"),
+            Dua(title="Sayyidul Istighfar", arabic_text="اللَّهُمَّ أَنْتَ رَبِّي لَا إِلَهَ إِلَّا أَنْتَ، خَلَقْتَنِي وَأَنَا عَبْدُكَ، وَأَنَا عَلَى عَهْدِكَ وَوَعْدِكَ مَا اسْتَطَعْتُ، أَعُوذُ بِكَ مِنْ شَرِّ مَا صَنَعْتُ، أَبُوءُ لَكَ بِنِعْمَتِكَ عَلَيَّ، وَأَبُوءُ لَكَ بِذَنْبِي فَاغْفِرْ لِي فَإِنَّهُ لَا يَغْفِرُ الذُّنُوبَ إِلَّا أَنْتَ", english_meaning="O Allah, You are my Lord, none has the right to be worshipped except You. You created me and I am Your servant, and I abide by Your covenant and promise as best I can. I seek refuge in You from the evil, which I have committed. I acknowledge Your blessing upon me and I acknowledge my sin, so forgive me, for none can forgive sins except You.", bangla_meaning="হে আল্লাহ! আপনি আমার প্রতিপালক। আপনি ছাড়া আর কোনো উপাস্য নেই। আপনিই আমাকে সৃষ্টি করেছেন এবং আমি আপনার বান্দা। আমি আমার সাধ্যমতো আপনার সাথে কৃত অঙ্গীকার ও প্রতিশ্রুতির ওপর কায়েম আছি। আমার কৃতকর্মের অনিষ্ট থেকে আমি আপনার কাছে আশ্রয় চাই। আপনার যে নিয়ামত আমার ওপর রয়েছে আমি তা স্বীকার করছি এবং আমি আমার গুনাহও স্বীকার করছি। সুতরাং আপনি আমাকে ক্ষমা করে দিন। কেননা আপনি ছাড়া আর কেউ গুনাহ ক্ষমা করতে পারে না।", category="Forgiveness"),
+            Dua(title="Ayatul Kursi", arabic_text="اللَّهُ لَا إِلَهَ إِلَّا هُوَ الْحَيُّ الْقَيُّومُ ۚ لَا تَأْخُذُهُ سِنَةٌ وَلَا نَوْمٌ ۚ لَهُ مَا فِي السَّمَاوَاتِ وَمَا فِي الْأَرْضِ ۗ مَنْ ذَا الَّذِي يَشْفَعُ عِنْدَهُ إِلَّا بِإِذْنِهِ ۚ يَعْلَمُ مَا بَيْنَ أَيْدِيهِمْ وَمَا خَلْفَهُمْ ۖ وَلَا يُحِيطُونَ بِشَيْءٍ مِنْ عِلْمِهِ إِلَّا بِمَا شَاءَ ۚ وَسِعَ كُرْسِيُّهُ السَّمَاوَاتِ وَالْأَرْضَ ۖ وَلَا يَئُودُهُ حِفْظُهُمَا ۚ وَهُوَ الْعَلِيُّ الْعَظِيمُ", english_meaning="Allah - there is no deity except Him, the Ever-Living, the Sustainer of [all] existence. Neither drowsiness overtakes Him nor sleep. To Him belongs whatever is in the heavens and whatever is on the earth. Who is it that can intercede with Him except by His permission? He knows what is [presently] before them and what will be after them, and they encompass not a thing of His knowledge except for what He wills. His Kursi extends over the heavens and the earth, and their preservation tires Him not. And He is the Most High, the Most Great.", bangla_meaning="আল্লাহ ছাড়া অন্য কোনো উপাস্য নেই, তিনি জীবিত ও সবকিছুর ধারক। তাঁকে তন্দ্রা ও নিদ্রা স্পর্শ করতে পারে না। আসমান ও যমীনে যা কিছু আছে সবই তাঁর। কে আছে এমন যে তাঁর অনুমতি ছাড়া তাঁর কাছে সুপারিশ করবে? তাদের সামনে ও পিছনে যা কিছু আছে তা তিনি জানেন। তারা তাঁর জ্ঞানের সামান্য অংশও আয়ত্ত করতে পারে না, তবে তিনি যতটুকু চান তা ছাড়া। তাঁর কুরসী আসমান ও যমীনব্যাপী পরিব্যাপ্ত। এ দুটোর রক্ষণাবেক্ষণ তাঁকে ক্লান্ত করে না। তিনি সুউচ্চ ও মহান।", category="Protection")
         ]
         
         for d in candidates:

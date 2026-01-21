@@ -38,19 +38,38 @@
         var calendarEl = document.getElementById('calendar');
         var calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
+            height: 'auto',
+            contentHeight: 'auto',
+            aspectRatio: 1.35,
             headerToolbar: {
-                left: 'prev,next today',
+                left: window.innerWidth < 768 ? 'prev,next' : 'prev,next today',
                 center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                right: window.innerWidth < 768 ? 'dayGridMonth' : 'dayGridMonth,timeGridWeek'
             },
-            selectable: true, // Allows clicking days
+            selectable: true,
             dateClick: function (info) {
                 openDayModal(info.dateStr);
             },
             events: '/api/events',
             eventClick: function (info) {
-                // Optional: Show event details
-                alert('Event: ' + info.event.title);
+                // For mobile, make clicks trigger the modal as well
+                openDayModal(info.event.startStr.split('T')[0]);
+            },
+            windowResize: function (view) {
+                // Adjust toolbar on resize
+                if (window.innerWidth < 768) {
+                    calendar.setOption('headerToolbar', {
+                        left: 'prev,next',
+                        center: 'title',
+                        right: 'dayGridMonth'
+                    });
+                } else {
+                    calendar.setOption('headerToolbar', {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,timeGridWeek'
+                    });
+                }
             }
         });
         calendar.render();

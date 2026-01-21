@@ -51,6 +51,10 @@
                         class="nav-link {{ 'active' if 'calendar' in request.endpoint else '' }}">
                         <span class="nav-icon">🗓️</span> Calendar View
                     </a></li>
+                <li><a href="{{ url_for('islamic_hub') }}"
+                        class="nav-link {{ 'active' if 'islamic' in request.endpoint else '' }}">
+                        <span class="nav-icon">📖</span> Islamic Hub (Duas)
+                    </a></li>
                 <li><a href="{{ url_for('prayers') }}"
                         class="nav-link {{ 'active' if 'prayer' in request.endpoint else '' }}">
                         <span class="nav-icon">🕌</span> Prayer & Deen
@@ -111,7 +115,7 @@
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
         {% for category, message in messages %}
-        <div class="alert alert-{{ category }}">{{ message }}</div>
+        <!-- <div class="alert alert-{{ category }}">{{ message }}</div> -->
         {% endfor %}
         {% endif %}
         {% endwith %}
