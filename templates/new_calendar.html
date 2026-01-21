@@ -40,13 +40,29 @@
             initialView: 'dayGridMonth',
             height: 'auto',
             contentHeight: 'auto',
-            aspectRatio: 1.35,
+            aspectRatio: window.innerWidth < 768 ? 0.8 : 1.5,
             headerToolbar: {
                 left: window.innerWidth < 768 ? 'prev,next' : 'prev,next today',
                 center: 'title',
-                right: window.innerWidth < 768 ? 'dayGridMonth' : 'dayGridMonth,timeGridWeek'
+                right: window.innerWidth < 768 ? 'dayGridMonth,listWeek' : 'multiMonthYear,dayGridMonth,timeGridWeek,listWeek'
+            },
+            views: {
+                multiMonthYear: {
+                    buttonText: 'Year'
+                },
+                dayGridMonth: {
+                    buttonText: 'Month'
+                },
+                timeGridWeek: {
+                    buttonText: 'Week'
+                },
+                listWeek: {
+                    buttonText: 'List'
+                }
             },
             selectable: true,
+            nowIndicator: true,
+            dayMaxEvents: true, // allow "more" link when too many events
             dateClick: function (info) {
                 openDayModal(info.dateStr);
             },
@@ -56,20 +72,14 @@
                 openDayModal(info.event.startStr.split('T')[0]);
             },
             windowResize: function (view) {
-                // Adjust toolbar on resize
-                if (window.innerWidth < 768) {
-                    calendar.setOption('headerToolbar', {
-                        left: 'prev,next',
-                        center: 'title',
-                        right: 'dayGridMonth'
-                    });
-                } else {
-                    calendar.setOption('headerToolbar', {
-                        left: 'prev,next today',
-                        center: 'title',
-                        right: 'dayGridMonth,timeGridWeek'
-                    });
-                }
+                // Adjust toolbar and aspect ratio on resize
+                const isMobile = window.innerWidth < 768;
+                calendar.setOption('aspectRatio', isMobile ? 0.8 : 1.5);
+                calendar.setOption('headerToolbar', {
+                    left: isMobile ? 'prev,next' : 'prev,next today',
+                    center: 'title',
+                    right: isMobile ? 'dayGridMonth,listWeek' : 'multiMonthYear,dayGridMonth,timeGridWeek,listWeek'
+                });
             }
         });
         calendar.render();
@@ -106,9 +116,26 @@
 
             let html = '';
 
+            // Day Overview (New)
+            if (data.day_overview) {
+                html += '<div style="background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; padding: 1.25rem; border-radius: 0.75rem; margin-bottom: 1.5rem; box-shadow: var(--shadow-md);">';
+                html += '<h3 style="margin-top: 0; color: white; display: flex; justify-content: space-between;">🌟 Day Overview <span style="font-size: 0.9rem; opacity: 0.9;">Score: ' + data.day_overview.total_score + '</span></h3>';
+                if (data.day_overview.intention) {
+                    html += '<p style="margin: 0.5rem 0; font-weight: 600;">🎯 Intention: ' + data.day_overview.intention + '</p>';
+                }
+                html += '<div style="display: flex; gap: 1rem; font-size: 0.85rem; margin-top: 0.5rem; opacity: 0.9;">';
+                html += '<span>⚡ Energy: ' + data.day_overview.energy_level + '/5</span>';
+                html += '<span>😊 Mood: ' + data.day_overview.mood + '/5</span>';
+                html += '</div>';
+                if (data.day_overview.reflection) {
+                    html += '<p style="margin-top: 0.75rem; font-size: 0.9rem; border-top: 1px solid rgba(255,255,255,0.2); padding-top: 0.5rem;">📝 Reflection: ' + data.day_overview.reflection + '</p>';
+                }
+                html += '</div>';
+            }
+
             // Significance (History)
             html += '<h3>🌍 Historical Events</h3>';
-            html += '<ul style="margin-bottom: 1.5rem; padding-left: 1.2rem;">';
+            html += '<ul style="margin-bottom: 1.5rem; padding-left: 1.2rem; color: var(--text-main); font-size: 0.95rem;">';
             if (data.significance && data.significance.length > 0) {
                 data.significance.forEach(item => {
                     html += `<li style="margin-bottom: 0.5rem;">${item}</li>`;
@@ -118,19 +145,19 @@
 
             // Daily Reflection (Quran/Hadith)
             if (data.reflection) {
-                html += '<div style="background-color: var(--bg-surface); padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem; border-left: 4px solid #8b5cf6;">';
-                html += '<h4 style="margin-top: 0; color: #8b5cf6;">📖 Daily Reflection</h4>';
-                html += `<p style="font-style: italic; margin: 0;">${data.reflection}</p>`;
+                html += '<div style="background-color: var(--bg-surface); padding: 1.25rem; border-radius: 0.75rem; margin-bottom: 1.5rem; border-left: 5px solid #8b5cf6;">';
+                html += '<h4 style="margin-top: 0; color: #8b5cf6;">📖 Daily Verse/Hadith</h4>';
+                html += `<p style="margin: 0; line-height: 1.5;">${data.reflection}</p>`;
                 html += '</div>';
             }
 
             // Dua
             if (data.dua) {
-                html += '<div style="background-color: var(--bg-body); padding: 1rem; border-radius: 0.5rem; border-left: 4px solid var(--primary);">';
+                html += '<div style="background-color: var(--bg-body); padding: 1.25rem; border-radius: 0.75rem; border-left: 5px solid var(--primary);">';
                 html += '<h4 style="margin-top: 0; color: var(--primary);">🤲 Recommended Dua</h4>';
-                html += `<p style="font-family: 'Amiri', serif; font-size: 1.2rem; margin: 0.5rem 0;">${data.dua.arabic}</p>`;
-                html += `<p style="font-style: italic; margin-bottom: 0.5rem;">${data.dua.meaning}</p>`;
-                html += `<p style="font-size: 0.9rem; color: var(--text-muted); margin: 0;"><strong>${data.dua.title}</strong></p>`;
+                html += `<p style="font-family: 'Amiri', serif; font-size: 1.3rem; margin: 0.75rem 0; color: var(--text-main); text-align: right; direction: rtl;">${data.dua.arabic}</p>`;
+                html += `<p style="font-style: italic; margin-bottom: 0.5rem; color: var(--text-main);">${data.dua.meaning}</p>`;
+                html += `<p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;"><strong>${data.dua.title}</strong></p>`;
                 html += '</div>';
             }
 

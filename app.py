@@ -724,40 +724,37 @@ def calendar_view():
 def get_calendar_events():
     events = []
     
-    # 1. Habits (Recurring) - Simplified visualization for "visual" calendar
-    # Just show active habits as "all-day" items for TODAY to keep it clean, 
-    # or implemented fully as recurrence rules in FullCalendar (advanced).
-    # For now, we won't clutter the calendar with every daily habit unless performed.
+    # FullCalendar sends start and end as ISO date strings
+    start_str = request.args.get('start', '').split('T')[0]
+    end_str = request.args.get('end', '').split('T')[0]
     
-    # 2. Schedule Items
+    if not start_str or not end_str:
+        return jsonify([])
+
+    try:
+        start_date = datetime.strptime(start_str, '%Y-%m-%d').date()
+        end_date = datetime.strptime(end_str, '%Y-%m-%d').date()
+    except ValueError:
+        return jsonify([])
+
+    # 1. Schedule Items (Persistent until deleted)
     active_schedule = Schedule.query.filter_by(user_id=current_user.id, is_active=True).first()
     if active_schedule:
-        # FullCalendar doesn't support "Weekly" explicitly without RRule, but we can fake it 
-        # by generating events for the next 4 weeks for visualization.
-        today = date.today()
-        # Map day name to 0-6
         days_map = {'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 'Thursday': 3, 'Friday': 4, 'Saturday': 5, 'Sunday': 6}
-        
         routines = RoutineItem.query.filter_by(schedule_id=active_schedule.id).all()
-        for r in routines:
-            if r.day_of_week in days_map:
-                day_idx = days_map[r.day_of_week]
-                # Find next occurrence
-                current_day_idx = today.weekday()
-                days_ahead = day_idx - current_day_idx
-                if days_ahead < 0: days_ahead += 7
-                
-                next_date = today + timedelta(days=days_ahead)
-                
-                # Generate for 4 weeks
-                for i in range(4):
-                    d = next_date + timedelta(weeks=i)
+        
+        curr = start_date
+        while curr <= end_date:
+            day_name = curr.strftime('%A')
+            for r in routines:
+                if r.day_of_week == day_name:
                     events.append({
                         'title': r.title,
-                        'start': f"{d}T{r.start_time}",
-                        'end': f"{d}T{r.end_time}",
+                        'start': f"{curr}T{r.start_time}",
+                        'end': f"{curr}T{r.end_time}",
                         'color': '#6366f1' # Primary color
                     })
+            curr += timedelta(days=1)
                     
     # 3. Islamic Special Days (Static for now)
     # In a real app, this would come from a library
@@ -927,11 +924,24 @@ def get_day_details():
                  'meaning': "All praise is due to Allah."
             }
             
+        # 2. Day Overview (from Day model)
+        day_record = Day.query.filter_by(user_id=current_user.id, date=dt.date()).first()
+        day_overview = None
+        if day_record:
+            day_overview = {
+                'intention': day_record.intention,
+                'total_score': day_record.total_score,
+                'energy_level': day_record.energy_level,
+                'mood': day_record.mood,
+                'reflection': day_record.reflection
+            }
+
         return jsonify({
             'date': dt.strftime('%B %d, %Y'),
             'significance': events,
-            'reflection': reflection,
-            'dua': dua_data
+            'reflection': reflection, # This is the dynamic Quran/Hadith quote
+            'dua': dua_data,
+            'day_overview': day_overview
         })
         
     except ValueError:
