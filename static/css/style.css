@@ -542,7 +542,19 @@ textarea:focus {
     border-radius: var(--radius-md) !important;
     padding: 0.5rem 1rem !important;
     transition: var(--transition);
+    margin: 0 0.25rem !important;
+    /* Added space between buttons */
 }
+
+.fc-button-group {
+    gap: 0.5rem;
+    /* Gap for modern layout */
+}
+
+.fc-button-group>.fc-button {
+    flex: none !important;
+}
+
 
 .fc .fc-button-primary:not(:disabled).fc-button-active,
 .fc .fc-button-primary:not(:disabled):active {
