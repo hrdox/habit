@@ -16,8 +16,11 @@
             <div
                 style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <strong>{{ item.start_time.strftime('%I:%M %p') }}</strong> - {{ item.title }}
-                    <br><small>{{ item.location or 'No Location' }}</small>
+                    <strong>{{ item.start_time.strftime('%I:%M %p') }} - {{ item.end_time.strftime('%I:%M %p')
+                        }}</strong>
+                    <div style="margin-top: 0.25rem; font-weight: 500;">{{ item.title }}</div>
+                    <small style="color: var(--text-muted); opacity: 0.8;">📍 {{ item.location or 'No Location'
+                        }}</small>
                 </div>
                 <div>
                     {% if schedule_status.get(item.id) %}

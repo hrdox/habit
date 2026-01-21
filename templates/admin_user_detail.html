@@ -322,13 +322,73 @@
         </div>
 
         <div id="schedule" class="tab-content">
+            <!-- Active Schedule Overview -->
+            <div class="card" style="padding: 1.5rem; border-radius: 20px; margin-bottom: 2rem;">
+                <h3 style="margin-top: 0;">Active Weekly Timetable</h3>
+                {% if active_schedule %}
+                <div style="margin-bottom: 1.5rem;">
+                    <span class="badge" style="background: var(--admin-primary); color: white; padding: 0.5rem 1rem;">
+                        Schedule: {{ active_schedule.name }}
+                    </span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1.25rem;">
+                    {% set week_days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] %}
+                    {% for day in week_days %}
+                    {% set items = active_schedule.items|selectattr('day_of_week', 'equalto', day)|list %}
+                    <div
+                        style="background: var(--admin-bg-soft); padding: 1.25rem; border-radius: 16px; border: 1px solid var(--admin-border);">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                            <span style="font-size: 1.1rem;">📅</span>
+                            <h4 style="margin: 0; color: var(--text-main); font-size: 1rem;">{{ day }}</h4>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            {% for item in items|sort(attribute='start_time') %}
+                            <div
+                                style="padding: 0.75rem; background: var(--bg-card); border-radius: 10px; border: 1px solid rgba(0,0,0,0.03);">
+                                <div
+                                    style="font-weight: 700; font-size: 0.9rem; margin-bottom: 0.25rem; color: var(--admin-primary);">
+                                    {{ item.title }}</div>
+                                <div
+                                    style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
+                                    <span>🕒</span> {{ item.start_time.strftime('%I:%M %p') }} - {{
+                                    item.end_time.strftime('%I:%M %p') }}
+                                </div>
+                                {% if item.location %}
+                                <div
+                                    style="font-size: 0.75rem; color: var(--text-muted); margin-top:0.25rem; opacity: 0.8;">
+                                    📍 {{ item.location }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <div style="font-size: 0.8rem; color: var(--text-muted); font-style: italic; opacity: 0.5;">
+                                No items</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div
+                    style="text-align: center; padding: 3rem; background: var(--admin-bg-soft); border-radius: 20px; border: 2px dashed var(--admin-border);">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📅</div>
+                    <h4 style="margin: 0; color: var(--text-muted);">No Active Schedule Configured</h4>
+                    <p style="font-size: 0.9rem; color: var(--text-muted); opacity: 0.7;">User hasn't created or
+                        activated a weekly routine yet.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Execution History -->
             <div class="card" style="padding: 1.5rem; border-radius: 20px;">
-                <h3 style="margin-top: 0;">Routine & Task Execution</h3>
+                <h3 style="margin-top: 0;">Routine & Task Execution History</h3>
                 <table class="premium-table">
                     <thead>
                         <tr>
                             <th>Execution Date</th>
                             <th>Task Description</th>
+                            <th>Time</th>
+                            <th>Location</th>
                             <th>Status</th>
                             <th>Reward</th>
                         </tr>
@@ -338,6 +398,15 @@
                         <tr>
                             <td>{{ s.date.strftime('%Y-%m-%d') }}</td>
                             <td style="font-weight: 600;">{{ s.routine.title if s.routine else s.task }}</td>
+                            <td>
+                                {% if s.routine %}
+                                {{ s.routine.start_time.strftime('%I:%M %p') }} - {{ s.routine.end_time.strftime('%I:%M
+                                %p') }}
+                                {% else %}
+                                {{ s.time or '-' }}
+                                {% endif %}
+                            </td>
+                            <td>{{ s.routine.location if s.routine and s.routine.location else '-' }}</td>
                             <td>
                                 <span class="badge"
                                     style="background: {{ 'rgba(16, 185, 129, 0.1)' if s.status else 'rgba(239, 68, 68, 0.1)' }}; color: {{ '#10b981' if s.status else '#ef4444' }};">

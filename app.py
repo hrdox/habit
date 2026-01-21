@@ -229,8 +229,14 @@ def admin_user_detail(user_id):
     prayer_logs = PrayerLog.query.filter_by(user_id=user.id).all()
     schedule_logs = ScheduleLog.query.filter_by(user_id=user.id).all()
     days = Day.query.filter_by(user_id=user.id).order_by(Day.date.desc()).limit(100).all()
+    
+    # [NEW] Fetch User's Active Schedule
+    from models import Schedule
+    active_schedule = Schedule.query.filter_by(user_id=user.id, is_active=True).first()
+    
     return render_template('admin_user_detail.html', user=user, habits=habits, habit_logs=habit_logs,
-                           prayer_logs=prayer_logs, schedule_logs=schedule_logs, days=days, active_tab='users')
+                           prayer_logs=prayer_logs, schedule_logs=schedule_logs, days=days, 
+                           active_schedule=active_schedule, active_tab='users')
 
 @app.route('/admin/content/duas')
 @login_required
@@ -1159,13 +1165,25 @@ def get_day_details():
                 'mood': day_record.mood,
                 'reflection': day_record.reflection
             }
+        
+        # 3. Schedule Information (Logs for this date)
+        s_logs = ScheduleLog.query.filter_by(user_id=current_user.id, date=dt.date()).all()
+        schedule_info = []
+        for s in s_logs:
+            schedule_info.append({
+                'title': s.routine.title if s.routine else s.task,
+                'time': s.routine.start_time.strftime('%I:%M %p') if s.routine else (s.time or '-'),
+                'status': s.status,
+                'location': s.routine.location if s.routine and s.routine.location else None
+            })
 
         return jsonify({
             'date': dt.strftime('%B %d, %Y'),
             'significance': events,
-            'reflection': reflection, # This is the dynamic Quran/Hadith quote
+            'reflection': reflection, 
             'dua': dua_data,
-            'day_overview': day_overview
+            'day_overview': day_overview,
+            'schedule': schedule_info
         })
         
     except ValueError:
