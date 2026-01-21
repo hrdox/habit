@@ -29,7 +29,7 @@ from hijri_converter import Gregorian
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
-from models import db, User, Habit, HabitLog, Schedule, RoutineItem, ScheduleLog, PrayerLog, Dua, Day
+from models import db, User, Habit, HabitLog, Schedule, RoutineItem, ScheduleLog, PrayerLog, Dua, Day, IslamicEvent
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -82,6 +82,9 @@ def login():
         user = User.query.filter(db.func.lower(User.username) == username.lower()).first()
         
         if user:
+            if user.is_banned:
+                flash("Your account has been suspended by an administrator.", "danger")
+                return redirect(url_for('login'))
             if user.check_password(password):
                 login_user(user)
                 return redirect(url_for('dashboard'))
@@ -114,14 +117,20 @@ def guest_login():
     return redirect(url_for('dashboard'))
 
 # --- Admin Routes ---
+# --- Admin Decorators ---
+
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or not current_user.is_admin:
+        if not current_user.is_authenticated or current_user.role != 'admin':
             flash("Admin access required.", "danger")
             return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
     return decorated_function
+
+def super_admin_required(f):
+    # Alias for admin_required as we are removing super_admin role
+    return admin_required(f)
 
 @app.route('/admin')
 @login_required
@@ -130,10 +139,215 @@ def admin_dashboard():
     stats = {
         'users': User.query.count(),
         'habits': Habit.query.count(),
-        'prayers_logged': PrayerLog.query.count()
+        'prayers_logged': PrayerLog.query.count(),
+        'guests': User.query.filter_by(role='guest').count()
     }
-    users = User.query.all()
-    return render_template('admin_dashboard.html', stats=stats, users=users)
+    users = User.query.order_by(User.join_date.desc()).limit(10).all()
+    return render_template('admin_dashboard.html', stats=stats, users=users, active_tab='overview')
+
+@app.route('/admin/users')
+@login_required
+@admin_required
+def admin_users():
+    search_query = request.args.get('q', '').strip()
+    role_filter = request.args.get('role', '')
+    status_filter = request.args.get('status', '')
+    
+    query = User.query
+    
+    if search_query:
+        query = query.filter(
+            (User.username.ilike(f'%{search_query}%')) | 
+            (User.email.ilike(f'%{search_query}%')) |
+            (db.cast(User.id, db.String).ilike(f'%{search_query}%'))
+        )
+    
+    if role_filter:
+        query = query.filter_by(role=role_filter)
+        
+    if status_filter:
+        if status_filter == 'active':
+            query = query.filter_by(is_banned=False)
+        elif status_filter == 'banned':
+            query = query.filter_by(is_banned=True)
+            
+    users = query.all()
+    return render_template('admin_dashboard.html', users=users, active_tab='users', 
+                           search_query=search_query, role_filter=role_filter, status_filter=status_filter)
+
+@app.route('/admin/user/<int:user_id>/ban', methods=['POST'])
+@login_required
+@admin_required
+def admin_ban_user(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.id == current_user.id:
+        flash("You cannot ban yourself!", "danger")
+    else:
+        user.is_banned = not user.is_banned
+        db.session.commit()
+        status = "banned" if user.is_banned else "unbanned"
+        flash(f"User {user.username} has been {status}.", "success")
+        # Audit log
+        from models import AuditLog
+        audit = AuditLog(admin_id=current_user.id, action='ban_user', target_user_id=user.id, reason=None, ip_address=request.remote_addr)
+        db.session.add(audit)
+        db.session.commit()
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/user/<int:user_id>/delete', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_user(user_id):
+    user = User.query.get_or_404(user_id)
+    if user.id == current_user.id:
+        flash("You cannot delete yourself!", "danger")
+    else:
+        # Audit log BEFORE deletion to keep record of who was deleted
+        from models import AuditLog
+        audit = AuditLog(admin_id=current_user.id, action='delete_user', target_user_id=user.id, reason="Admin manual deletion", ip_address=request.remote_addr)
+        db.session.add(audit)
+        
+        db.session.delete(user)
+        db.session.commit()
+        flash(f"User {user.username} deleted.", "success")
+    return redirect(url_for('admin_users'))
+
+# --- Admin User Detail View ---
+@app.route('/admin/user/<int:user_id>', methods=['GET'])
+@login_required
+@admin_required
+def admin_user_detail(user_id):
+    user = User.query.get_or_404(user_id)
+    # Audit log for view action
+    from models import AuditLog
+    audit = AuditLog(admin_id=current_user.id, action='view_user', target_user_id=user.id, reason=None, ip_address=request.remote_addr)
+    db.session.add(audit)
+    db.session.commit()
+    # Gather related data
+    habits = Habit.query.filter_by(user_id=user.id).all()
+    habit_logs = HabitLog.query.join(Habit).filter(Habit.user_id == user.id).all()
+    prayer_logs = PrayerLog.query.filter_by(user_id=user.id).all()
+    schedule_logs = ScheduleLog.query.filter_by(user_id=user.id).all()
+    days = Day.query.filter_by(user_id=user.id).order_by(Day.date.desc()).limit(100).all()
+    return render_template('admin_user_detail.html', user=user, habits=habits, habit_logs=habit_logs,
+                           prayer_logs=prayer_logs, schedule_logs=schedule_logs, days=days, active_tab='users')
+
+@app.route('/admin/content/duas')
+@login_required
+@admin_required
+def admin_duas():
+    duas = Dua.query.filter_by(user_id=None).all()
+    return render_template('admin_dashboard.html', duas=duas, active_tab='content_duas')
+
+@app.route('/admin/content/events')
+@login_required
+@admin_required
+def admin_events():
+    events = IslamicEvent.query.all()
+    return render_template('admin_dashboard.html', events=events, active_tab='content_events')
+
+@app.route('/admin/content/duas/add', methods=['POST'])
+@login_required
+@admin_required
+def admin_add_dua():
+    title = request.form.get('title')
+    category = request.form.get('category')
+    arabic_text = request.form.get('arabic_text')
+    english_meaning = request.form.get('english_meaning')
+    
+    new_dua = Dua(
+        title=title,
+        category=category,
+        arabic_text=arabic_text,
+        english_meaning=english_meaning,
+        user_id=None # Global dua
+    )
+    db.session.add(new_dua)
+    db.session.commit()
+    flash(f"Dua '{title}' added successfully!", "success")
+    return redirect(url_for('admin_duas'))
+
+@app.route('/admin/content/events/add', methods=['POST'])
+@login_required
+@admin_required
+def admin_add_event():
+    title = request.form.get('title')
+    date_str = request.form.get('date')
+    color = request.form.get('color')
+    
+    event_date = datetime.strptime(date_str, '%Y-%m-%d')
+    new_event = IslamicEvent(
+        title=title,
+        date=event_date,
+        color=color
+    )
+    db.session.add(new_event)
+    db.session.commit()
+    flash(f"Event '{title}' added to global calendar!", "success")
+    return redirect(url_for('admin_events'))
+
+@app.route('/admin/content/duas/delete/<int:dua_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_dua(dua_id):
+    dua = Dua.query.get_or_404(dua_id)
+    db.session.delete(dua)
+    db.session.commit()
+    flash("Dua deleted.", "success")
+    return redirect(url_for('admin_duas'))
+
+@app.route('/admin/content/events/delete/<int:event_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_event(event_id):
+    event = IslamicEvent.query.get_or_404(event_id)
+    db.session.delete(event)
+    db.session.commit()
+    flash("Event deleted.", "success")
+    return redirect(url_for('admin_events'))
+
+@app.route('/admin/logs')
+@login_required
+@admin_required
+def admin_logs():
+    from models import AuditLog
+    logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).limit(100).all()
+    return render_template('admin_dashboard.html', logs=logs, active_tab='system_logs')
+
+@app.route('/admin/log_action', methods=['POST'])
+@login_required
+@admin_required
+def admin_log_action():
+    data = request.get_json()
+    action = data.get('action')
+    target_user_id = data.get('target_user_id')
+    reason = data.get('reason')
+    
+    from models import AuditLog
+    audit = AuditLog(
+        admin_id=current_user.id,
+        action=action,
+        target_user_id=target_user_id,
+        reason=reason,
+        ip_address=request.remote_addr
+    )
+    db.session.add(audit)
+    db.session.commit()
+    return jsonify({"status": "success"})
+
+@app.route('/admin/system/cleanup', methods=['POST'])
+@login_required
+@admin_required
+def admin_cleanup_guests():
+    # Cleanup guests older than 24 hours
+    cutoff = datetime.utcnow() - timedelta(hours=24)
+    guests = User.query.filter(User.role == 'guest', User.join_date < cutoff).all()
+    count = len(guests)
+    for g in guests:
+        db.session.delete(g)
+    db.session.commit()
+    flash(f"Cleared {count} temporary guest accounts.", "success")
+    return redirect(url_for('admin_dashboard'))
 
 # --- Main Routes ---
 @app.route('/ping')
@@ -643,8 +857,8 @@ def init_db():
         admin = User(username='admin', email='admin@habit.local', role='admin')
         admin.set_password('adminpass')
         db.session.add(admin)
-        db.session.commit()
         
+    db.session.commit()
     return "Database Initialized, Seeded & Admin Created!"
 
 # Static Islamic Events Dictionary
@@ -756,13 +970,23 @@ def get_calendar_events():
                     })
             curr += timedelta(days=1)
                     
-    # 3. Islamic Special Days (Static for now)
-    # In a real app, this would come from a library
+    # 3. Islamic Special Days
+    # Static fallback
     special_days = [
         {'title': 'Ramadan Begins', 'start': '2025-03-01', 'color': '#10b981'},
         {'title': 'Eid al-Fitr', 'start': '2025-03-30', 'color': '#f59e0b'},
     ]
     events.extend(special_days)
+    
+    # Dynamic from DB
+    db_events = IslamicEvent.query.filter(IslamicEvent.date >= start_date, IslamicEvent.date <= end_date).all()
+    for de in db_events:
+        events.append({
+            'title': de.title,
+            'start': de.date.isoformat(),
+            'color': de.color,
+            'description': de.description
+        })
     
     return jsonify(events)
 

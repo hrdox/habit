@@ -10,14 +10,16 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(150), unique=True, nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
-    role = db.Column(db.String(20), default='user') # 'user', 'admin'
+    role = db.Column(db.String(20), default='user') # 'user', 'admin', 'moderator'
+    is_banned = db.Column(db.Boolean, default=False)
     join_date = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Relationships
-    habits = db.relationship('Habit', backref='owner', lazy=True)
-    schedules = db.relationship('Schedule', backref='owner', lazy=True)
-    prayer_logs = db.relationship('PrayerLog', backref='user', lazy=True)
-    days = db.relationship('Day', backref='user', lazy=True)
+    habits = db.relationship('Habit', backref='owner', lazy=True, cascade="all, delete-orphan")
+    schedules = db.relationship('Schedule', backref='owner', lazy=True, cascade="all, delete-orphan")
+    prayer_logs = db.relationship('PrayerLog', backref='user', lazy=True, cascade="all, delete-orphan")
+    days = db.relationship('Day', backref='user', lazy=True, cascade="all, delete-orphan")
+    schedule_logs = db.relationship('ScheduleLog', backref='user', lazy=True, cascade="all, delete-orphan")
     
     @property
     def is_admin(self):
@@ -133,3 +135,24 @@ class Day(db.Model):
     habit_logs = db.relationship('HabitLog', backref='day', lazy=True)
     prayer_logs = db.relationship('PrayerLog', backref='day', lazy=True)
     schedule_logs = db.relationship('ScheduleLog', backref='day', lazy=True)
+
+class IslamicEvent(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(100), nullable=False)
+    date = db.Column(db.Date, nullable=False) # Gregorian date
+    color = db.Column(db.String(7), default='#10b981') # Hex color
+    is_recurring_hijri = db.Column(db.Boolean, default=False)
+    description = db.Column(db.Text, nullable=True)
+
+# --- Audit Logging Model ---
+class AuditLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    admin_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)  # Admin who performed action
+    action = db.Column(db.String(100), nullable=False)  # e.g., 'view_user', 'ban_user', 'delete_user'
+    target_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # User affected (if any)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    reason = db.Column(db.Text, nullable=True)  # Optional justification for access
+    ip_address = db.Column(db.String(45), nullable=True)  # Store IP for audit trail
+
+    admin = db.relationship('User', foreign_keys=[admin_id], backref='admin_actions')
+    target_user = db.relationship('User', foreign_keys=[target_user_id], backref='targeted_actions')

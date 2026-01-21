@@ -1,48 +1,835 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Admin Dashboard</h2>
+<style>
+    :root {
+        --admin-primary: #6366f1;
+        --admin-secondary: #8b5cf6;
+        --admin-bg-soft: rgba(99, 102, 241, 0.05);
+        --admin-border: rgba(255, 255, 255, 0.1);
+        --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --admin-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
 
-<div class="grid-3">
-    <div class="card">
-        <h3>Total Users</h3>
-        <p style="font-size: 2rem; font-weight: bold; color: var(--primary);">{{ stats.users }}</p>
-    </div>
-    <div class="card">
-        <h3>Total Habits</h3>
-        <p style="font-size: 2rem; font-weight: bold; color: var(--accent);">{{ stats.habits }}</p>
-    </div>
-    <div class="card">
-        <h3>Prayer Logs</h3>
-        <p style="font-size: 2rem; font-weight: bold; color: var(--success);">{{ stats.prayers_logged }}</p>
-    </div>
-</div>
+    .admin-container {
+        display: flex;
+        gap: 2.5rem;
+        align-items: flex-start;
+        padding-top: 1rem;
+    }
 
-<div class="card">
-    <h3>User Management</h3>
-    <table style="width: 100%; border-collapse: collapse;">
-        <thead>
-            <tr style="text-align: left; border-bottom: 2px solid var(--border);">
-                <th style="padding: 0.5rem;">ID</th>
-                <th style="padding: 0.5rem;">Username</th>
-                <th style="padding: 0.5rem;">Role</th>
-                <th style="padding: 0.5rem;">Joined</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for u in users %}
-            <tr style="border-bottom: 1px solid var(--border);">
-                <td style="padding: 0.5rem;">{{ u.id }}</td>
-                <td style="padding: 0.5rem;">{{ u.username }}</td>
-                <td style="padding: 0.5rem;">
-                    <span class="badge {{ 'badge-blue' if u.role == 'admin' else 'badge-green' }}">
-                        {{ u.role }}
-                    </span>
-                </td>
-                <td style="padding: 0.5rem;">{{ u.join_date.strftime('%Y-%m-%d') }}</td>
-            </tr>
+    .admin-sidebar {
+        width: 280px;
+        padding: 1.5rem;
+        position: sticky;
+        top: 2rem;
+        flex-shrink: 0;
+        background: var(--bg-card);
+        border: 1px solid var(--admin-border);
+        border-radius: 20px;
+        box-shadow: var(--admin-shadow);
+        backdrop-filter: blur(10px);
+    }
+
+    .admin-main {
+        flex: 1;
+        min-width: 0;
+    }
+
+    @media (max-width: 992px) {
+        .admin-container {
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .admin-sidebar {
+            width: 100%;
+            position: static;
+            padding: 1rem;
+        }
+
+        .admin-sidebar ul {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+        }
+
+        .admin-sidebar ul li {
+            margin-bottom: 0 !important;
+            flex: 1;
+            min-width: 160px;
+        }
+    }
+
+    .sidebar-link {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        text-decoration: none;
+        color: var(--text-muted);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 500;
+        margin-bottom: 0.4rem;
+    }
+
+    .sidebar-link:hover {
+        background: var(--admin-bg-soft);
+        color: var(--admin-primary);
+        transform: translateX(4px);
+    }
+
+    .sidebar-link.active {
+        background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary));
+        color: white;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    .sidebar-link.active span {
+        filter: brightness(0) invert(1);
+    }
+
+    .stat-card {
+        padding: 1.5rem;
+        border-radius: 20px;
+        border: 1px solid var(--admin-border);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--admin-shadow-lg);
+    }
+
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 100px;
+        height: 100px;
+        background: radial-gradient(circle, var(--admin-primary) 0%, transparent 70%);
+        opacity: 0.05;
+        border-radius: 50%;
+        transform: translate(30%, -30%);
+    }
+
+    .premium-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .premium-table th {
+        padding: 1.25rem 1rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--admin-border);
+    }
+
+    .premium-table td {
+        padding: 1.25rem 1rem;
+        border-bottom: 1px solid var(--admin-border);
+        vertical-align: middle;
+    }
+
+    .premium-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .premium-table tr:hover td {
+        background: var(--admin-bg-soft);
+    }
+
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: var(--admin-bg-soft);
+        color: var(--admin-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .badge {
+        padding: 0.35rem 0.75rem;
+        border-radius: 100px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .badge-admin {
+        background: rgba(99, 102, 241, 0.1);
+        color: #6366f1;
+    }
+
+    .badge-user {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+
+    .badge-guest {
+        background: rgba(107, 114, 128, 0.1);
+        color: #6b7280;
+    }
+
+    .badge-banned {
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+    }
+
+    .badge-active {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+
+    .search-container {
+        display: grid;
+        grid-template-columns: 1fr auto auto auto auto;
+        gap: 1rem;
+        padding: 1.5rem;
+        background: var(--bg-card);
+        border: 1px solid var(--admin-border);
+        border-radius: 20px;
+        margin-bottom: 2rem;
+    }
+
+    @media (max-width: 768px) {
+        .search-container {
+            grid-template-columns: repeat(2, 1fr);
+            padding: 1.25rem;
+            gap: 0.75rem;
+            border-radius: 16px;
+        }
+
+        .search-container>div:first-child {
+            grid-column: span 2;
+        }
+
+        .input-premium {
+            height: 48px;
+            width: 100%;
+            font-size: 0.95rem;
+            padding: 0 1rem;
+        }
+
+        .search-container>button,
+        .search-container>a {
+            height: 48px;
+            padding: 0 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            width: 100% !important;
+            margin: 0;
+        }
+    }
+
+    .input-premium {
+        background: var(--bg-page);
+        border: 1px solid var(--admin-border);
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        color: var(--text-main);
+        transition: all 0.3s ease;
+        appearance: none;
+        -webkit-appearance: none;
+    }
+
+    select.input-premium {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        padding-right: 2.8rem;
+        cursor: pointer;
+    }
+
+    .input-premium:focus {
+        border-color: var(--admin-primary);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        outline: none;
+    }
+
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(8px);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    .modal-content {
+        background: var(--bg-card);
+        padding: 2.5rem;
+        border-radius: 24px;
+        width: 100%;
+        max-width: 550px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        border: 1px solid var(--admin-border);
+        transform: scale(0.95);
+        animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes modalIn {
+        to {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+
+    .action-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        border: 1px solid var(--admin-border);
+        background: transparent;
+        cursor: pointer;
+    }
+
+    .action-btn:hover {
+        transform: scale(1.1);
+    }
+</style>
+
+<div class="admin-container">
+    <!-- Admin Sidebar -->
+    <div class="admin-sidebar" style="margin-top: 1rem;">
+        <div
+            style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--admin-border);">
+            <div
+                style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary)); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem;">
+                🛡️
+            </div>
+            <h3 style="margin: 0; font-size: 1.25rem;">Admin Center</h3>
+        </div>
+
+        <ul style="list-style: none; padding: 0; margin: 0;">
+            <li>
+                <a href="{{ url_for('admin_dashboard') }}"
+                    class="sidebar-link {{ 'active' if active_tab == 'overview' else '' }}">
+                    <span>📊</span> Overview
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_users') }}"
+                    class="sidebar-link {{ 'active' if active_tab == 'users' else '' }}">
+                    <span>👥</span> Users
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_duas') }}"
+                    class="sidebar-link {{ 'active' if active_tab == 'content_duas' else '' }}">
+                    <span>📖</span> Global Duas
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_events') }}"
+                    class="sidebar-link {{ 'active' if active_tab == 'content_events' else '' }}">
+                    <span>🌙</span> Islamic Events
+                </a>
+            </li>
+            <li>
+                <a href="{{ url_for('admin_logs') }}"
+                    class="sidebar-link {{ 'active' if active_tab == 'system_logs' else '' }}">
+                    <span>📜</span> Audit Logs
+                </a>
+            </li>
+        </ul>
+
+        <div style="margin-top: 3rem; padding: 1.25rem; background: var(--admin-bg-soft); border-radius: 16px;">
+            <p style="margin: 0 0 1rem 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4;">Maintenance
+                tools for system optimization.</p>
+            <form action="{{ url_for('admin_cleanup_guests') }}" method="POST">
+                <button type="submit" class="btn btn-outline"
+                    style="width: 100%; border-radius: 10px; font-size: 0.85rem; color: var(--danger); border-color: rgba(239, 68, 68, 0.3); background: var(--bg-card);">
+                    🧹 Cleanup Guests
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="admin-main">
+        {% if active_tab == 'overview' %}
+        <h2 style="margin: 0 0 2rem 0;">System Performance</h2>
+        <div class="grid-3" style="margin-bottom: 2.5rem; gap: 1.5rem;">
+            <div class="card stat-card">
+                <p style="margin: 0; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Registered Users
+                </p>
+                <h3 style="font-size: 2.5rem; margin: 0.75rem 0; color: var(--admin-primary);">{{ stats.users }}</h3>
+                <div
+                    style="display: flex; align-items: center; gap: 0.5rem; color: #10b981; font-size: 0.8rem; font-weight: 600;">
+                    <span>⬆️ 12.5%</span> <span style="color: var(--text-muted); font-weight: 400;">Growth this
+                        month</span>
+                </div>
+            </div>
+            <div class="card stat-card">
+                <p style="margin: 0; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Active Habits</p>
+                <h3 style="font-size: 2.5rem; margin: 0.75rem 0; color: var(--admin-secondary);">{{ stats.habits }}</h3>
+                <div
+                    style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.8rem;">
+                    <span>Tracker Engagement</span>
+                </div>
+            </div>
+            <div class="card stat-card">
+                <p style="margin: 0; font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Prayer Logs</p>
+                <h3 style="font-size: 2.5rem; margin: 0.75rem 0; color: #f59e0b;">{{ stats.prayers_logged }}</h3>
+                <div
+                    style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-muted); font-size: 0.8rem;">
+                    <span>Total Contributions</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="padding: 2rem; border-radius: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h3 style="margin: 0;">Recent Activity</h3>
+                <a href="#"
+                    style="color: var(--admin-primary); text-decoration: none; font-size: 0.85rem; font-weight: 600;">View
+                    All</a>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="premium-table">
+                    <thead>
+                        <tr>
+                            <th>User Identification</th>
+                            <th>Permission Level</th>
+                            <th>Onboarding Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users[:10] %}
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <div class="user-avatar">{{ u.username[0]|upper }}</div>
+                                    <div>
+                                        <div style="font-weight: 600; color: var(--text-main);">{{ u.username }}</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted);">{{ u.email }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span
+                                    class="badge {{ 'badge-admin' if u.role == 'admin' else 'badge-user' if u.role == 'user' else 'badge-guest' }}">
+                                    {{ u.role|upper }}
+                                </span>
+                            </td>
+                            <td style="color: var(--text-muted); font-size: 0.9rem;">
+                                {{ u.join_date.strftime('%B %d, %Y') }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if active_tab == 'users' %}
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2 style="margin: 0;">User Management</h2>
+            <div style="display: flex; gap: 0.75rem;">
+                <button class="btn btn-outline" style="border-radius: 12px; font-size: 0.85rem;">Export CSV</button>
+            </div>
+        </div>
+
+        <!-- Search & Filters -->
+        <form action="{{ url_for('admin_users') }}" method="GET" class="search-container">
+            <div>
+                <input type="text" name="q" placeholder="Search by name, email or ID..."
+                    value="{{ search_query or '' }}" class="input-premium" style="width: 100%;">
+            </div>
+            <div>
+                <select name="role" class="input-premium">
+                    <option value="">All Roles</option>
+                    <option value="user" {{ 'selected' if role_filter=='user' else '' }}>User</option>
+                    <option value="admin" {{ 'selected' if role_filter=='admin' else '' }}>Admin</option>
+                    <option value="guest" {{ 'selected' if role_filter=='guest' else '' }}>Guest</option>
+                </select>
+            </div>
+            <div>
+                <select name="status" class="input-premium">
+                    <option value="">All Status</option>
+                    <option value="active" {{ 'selected' if status_filter=='active' else '' }}>Active</option>
+                    <option value="banned" {{ 'selected' if status_filter=='banned' else '' }}>Banned</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary"
+                style="padding: 0 1.5rem; border-radius: 12px; font-weight: 600;">🔍 Search</button>
+            <a href="{{ url_for('admin_users') }}" class="btn action-btn"
+                style="width: auto; padding: 0 1rem; border-radius: 12px; border-color: var(--admin-border); color: var(--text-muted); display: flex; align-items: center;">Reset</a>
+        </form>
+
+        <div class="card" style="padding: 1rem; border-radius: 20px;">
+            <div style="overflow-x: auto;">
+                <table class="premium-table">
+                    <thead>
+                        <tr>
+                            <th>User Detail</th>
+                            <th>Role & Permissions</th>
+                            <th>Account Status</th>
+                            <th style="text-align: right;">Operations</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 1rem;">
+                                    <div class="user-avatar"
+                                        style="background: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.1);">
+                                        {{ u.username[0]|upper }}</div>
+                                    <div>
+                                        <div style="font-weight: 600;">{{ u.username }}</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">#ID {{ u.id }} • {{
+                                            u.email }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span
+                                    class="badge {{ 'badge-admin' if u.role == 'admin' else 'badge-user' if u.role == 'user' else 'badge-guest' }}">
+                                    {{ u.role|upper }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge {{ 'badge-banned' if u.is_banned else 'badge-active' }}">
+                                    {{ 'BANNED' if u.is_banned else 'ACTIVE' }}
+                                </span>
+                            </td>
+                            <td>
+                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    <a href="{{ url_for('admin_user_detail', user_id=u.id) }}" class="action-btn"
+                                        title="Inspect Profile"
+                                        style="color: var(--admin-primary); background: rgba(99, 102, 241, 0.05); border-color: rgba(99, 102, 241, 0.2);">
+                                        👁️
+                                    </a>
+                                    <form action="{{ url_for('admin_ban_user', user_id=u.id) }}" method="POST"
+                                        style="display: inline;">
+                                        <button type="submit" class="action-btn"
+                                            title="{{ 'Restore Access' if u.is_banned else 'Suspend User' }}"
+                                            style="color: {{ '#10b981' if u.is_banned else '#f59e0b' }}; background: {{ 'rgba(16, 185, 129, 0.05)' if u.is_banned else 'rgba(245, 158, 11, 0.05)' }}; border-color: {{ 'rgba(16, 185, 129, 0.2)' if u.is_banned else 'rgba(245, 158, 11, 0.2)' }};">
+                                            {{ '🔓' if u.is_banned else '🚫' }}
+                                        </button>
+                                    </form>
+                                    <form action="{{ url_for('admin_delete_user', user_id=u.id) }}" method="POST"
+                                        onsubmit="return confirm('Full account deletion? This CANNOT be undone.')"
+                                        style="display: inline;">
+                                        <button type="submit" class="action-btn" title="Permanent Delete"
+                                            style="color: var(--danger); background: rgba(239, 68, 68, 0.05); border-color: rgba(239, 68, 68, 0.2);">
+                                            🗑️
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if active_tab == 'content_duas' %}
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem;">
+            <div>
+                <h2 style="margin: 0;">Global Islamic Content</h2>
+                <p style="margin: 0.5rem 0 0 0; color: var(--text-muted); font-size: 0.9rem;">Management of universal
+                    duas provided to all platform users.</p>
+            </div>
+            <button class="btn btn-primary"
+                style="padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;"
+                onclick="openModal('addDuaModal')">
+                <span style="font-size: 1.2rem;">+</span> Add Global Dua
+            </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
+            {% for d in duas %}
+            <div class="card stat-card" style="display: flex; flex-direction: column; height: 100%;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem;">
+                    <div>
+                        <span class="badge badge-user" style="margin-bottom: 0.5rem; display: inline-block;">{{
+                            d.category }}</span>
+                        <h4 style="margin: 0; font-size: 1.1rem;">{{ d.title }}</h4>
+                    </div>
+                    <form action="{{ url_for('admin_delete_dua', dua_id=d.id) }}" method="POST"
+                        onsubmit="return confirm('Delete this dua?')">
+                        <button type="submit" class="action-btn"
+                            style="color: var(--danger); border-color: rgba(239, 68, 68, 0.2);">🗑️</button>
+                    </form>
+                </div>
+                <div style="background: var(--admin-bg-soft); padding: 1.25rem; border-radius: 12px; margin-top: auto;">
+                    <p
+                        style="margin: 0; font-family: 'Amiri', serif; font-size: 1.4rem; direction: rtl; line-height: 1.8; color: var(--admin-primary);">
+                        {{ d.arabic_text[:100] }}{{ '...' if d.arabic_text|length > 100 }}
+                    </p>
+                </div>
+                <div style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted); font-style: italic;">
+                    {{ d.english_meaning[:80] }}{{ '...' if d.english_meaning|length > 80 }}
+                </div>
+            </div>
             {% endfor %}
-        </tbody>
-    </table>
+        </div>
+
+        <!-- Add Dua Modal -->
+        <div id="addDuaModal" class="modal-overlay">
+            <div class="modal-content">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 2rem; align-items: center;">
+                    <h3 style="margin: 0;">Publish New Dua</h3>
+                    <button onclick="closeModal('addDuaModal')" class="action-btn"
+                        style="border: none; font-size: 1.2rem;">&times;</button>
+                </div>
+                <form action="{{ url_for('admin_add_dua') }}" method="POST">
+                    <div style="margin-bottom: 1.25rem;">
+                        <label
+                            style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-muted);">Title</label>
+                        <input type="text" name="title" required class="input-premium" style="width: 100%;"
+                            placeholder="e.g. Dua for Hardship">
+                    </div>
+                    <div style="margin-bottom: 1.25rem;">
+                        <label
+                            style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-muted);">Category</label>
+                        <input type="text" name="category" placeholder="e.g. Daily, Travel, Protection" required
+                            class="input-premium" style="width: 100%;">
+                    </div>
+                    <div style="margin-bottom: 1.25rem;">
+                        <label
+                            style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-muted);">Arabic
+                            Text</label>
+                        <textarea name="arabic_text" required rows="4" class="input-premium"
+                            style="width: 100%; font-family: 'Amiri', serif; font-size: 1.2rem; direction: rtl;"
+                            placeholder="اللهم..."></textarea>
+                    </div>
+                    <div style="margin-bottom: 2rem;">
+                        <label
+                            style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-muted);">English
+                            Meaning (Optional)</label>
+                        <textarea name="english_meaning" rows="3" class="input-premium" style="width: 100%;"
+                            placeholder="Translation of the dua..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary"
+                        style="width: 100%; padding: 1rem; border-radius: 14px; font-weight: 700; background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary)); border: none; box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4);">
+                        Publish to Global Repository
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if active_tab == 'content_events' %}
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem;">
+            <div>
+                <h2 style="margin: 0;">Calendar Governance</h2>
+                <p style="margin: 0.5rem 0 0 0; color: var(--text-muted); font-size: 0.9rem;">Universal events that
+                    synchronize with every user's personal calendar.</p>
+            </div>
+            <button class="btn btn-primary" style="padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600;"
+                onclick="openModal('addEventModal')">+ New Event</button>
+        </div>
+
+        <div class="card" style="padding: 1rem; border-radius: 20px;">
+            <table class="premium-table">
+                <thead>
+                    <tr>
+                        <th>Significance & Title</th>
+                        <th>Calendar Date</th>
+                        <th>Representation</th>
+                        <th style="text-align: right;">Removal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in events %}
+                    <tr>
+                        <td style="font-weight: 600; color: var(--text-main);">{{ e.title }}</td>
+                        <td style="color: var(--text-muted);">{{ e.date.strftime('%B %d, %Y') }}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div
+                                    style="width: 12px; height: 12px; border-radius: 4px; background-color: {{ e.color }}; box-shadow: 0 0 0 2px white, 0 0 0 4px {{ e.color }}44;">
+                                </div>
+                                <span style="font-size: 0.85rem;">Tagging Color</span>
+                            </div>
+                        </td>
+                        <td style="text-align: right;">
+                            <form action="{{ url_for('admin_delete_event', event_id=e.id) }}" method="POST"
+                                onsubmit="return confirm('Delete this event?')" style="display: inline-block;">
+                                <button type="submit" class="action-btn"
+                                    style="color: var(--danger); border-color: rgba(239, 68, 68, 0.2);">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 4rem; color: var(--text-muted);">
+                            No dynamic events configured for the global calendar.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Add Event Modal -->
+        <div id="addEventModal" class="modal-overlay">
+            <div class="modal-content">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 2rem; align-items: center;">
+                    <h3 style="margin: 0;">Create Calendar Event</h3>
+                    <button onclick="closeModal('addEventModal')" class="action-btn"
+                        style="border: none; font-size: 1.2rem;">&times;</button>
+                </div>
+                <form action="{{ url_for('admin_add_event') }}" method="POST">
+                    <div style="margin-bottom: 1.25rem;">
+                        <label
+                            style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-muted);">Event
+                            Name</label>
+                        <input type="text" name="title" required class="input-premium" style="width: 100%;"
+                            placeholder="e.g. Start of Ramadan">
+                    </div>
+                    <div style="margin-bottom: 1.25rem;">
+                        <label
+                            style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-muted);">Event
+                            Date</label>
+                        <input type="date" name="date" required class="input-premium" style="width: 100%;">
+                    </div>
+                    <div style="margin-bottom: 2rem;">
+                        <label
+                            style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-muted);">Theme
+                            Color</label>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <input type="color" name="color" value="#6366f1"
+                                style="width: 60px; height: 45px; border: none; padding: 0; background: transparent; cursor: pointer; border-radius: 8px;">
+                            <span style="font-size: 0.85rem; color: var(--text-muted);">This color will represent the
+                                event on the calendar.</span>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary"
+                        style="width: 100%; padding: 1rem; border-radius: 14px; font-weight: 700; background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary)); border: none;">
+                        Add to System Calendar
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if active_tab == 'system_logs' %}
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2.5rem;">
+            <div>
+                <h2 style="margin: 0;">Security Audit Trail</h2>
+                <p style="margin: 0.5rem 0 0 0; color: var(--text-muted); font-size: 0.9rem;">Verifiable history of
+                    administrative actions within the system.</p>
+            </div>
+            <div class="badge badge-user" style="padding: 0.5rem 1rem;">SECURE ENCRYPTED LOGS</div>
+        </div>
+
+        <div class="card" style="padding: 1rem; border-radius: 24px; border: 1px solid var(--admin-border);">
+            <div style="overflow-x: auto;">
+                <table class="premium-table">
+                    <thead>
+                        <tr>
+                            <th>Chronology</th>
+                            <th>Originating Admin</th>
+                            <th>Action Performed</th>
+                            <th>Recipient/Target</th>
+                            <th style="text-align: right;">IP Vector</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in logs %}
+                        <tr>
+                            <td style="color: var(--text-muted); font-size: 0.85rem;">
+                                {{ log.timestamp.strftime('%b %d, %H:%M:%S') }}
+                            </td>
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.75rem;">{{
+                                        log.admin.username[0]|upper }}</div>
+                                    <span style="font-weight: 600;">{{ log.admin.username }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span
+                                    style="font-family: 'JetBrains Mono', monospace; padding: 0.3rem 0.6rem; background: var(--admin-bg-soft); border-radius: 8px; color: var(--admin-primary); font-size: 0.75rem; border: 1px solid rgba(99, 102, 241, 0.1);">
+                                    {{ log.action|upper }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if log.target_user %}
+                                <div style="font-size: 0.9rem;">
+                                    {{ log.target_user.username }} <small style="opacity: 0.5;">#{{ log.target_user_id
+                                        }}</small>
+                                </div>
+                                {% else %}<span style="opacity: 0.3;">—</span>{% endif %}
+                            </td>
+                            <td
+                                style="text-align: right; font-family: monospace; color: var(--text-muted); font-size: 0.85rem;">
+                                {{ log.ip_address or 'System' }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 5rem; color: var(--text-muted);">
+                                <div style="font-size: 4rem; opacity: 0.2; margin-bottom: 1.5rem;">📁</div>
+                                <h3 style="margin: 0; color: var(--text-muted);">History is Empty</h3>
+                                <p style="margin: 0.5rem 0 0 0;">No administrative operations have been logged yet.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
 </div>
+
+<script>
+    function openModal(id) {
+        document.getElementById(id).style.display = 'flex';
+        document.body.style.overflow = 'hidden'; // Prevent scroll
+    }
+    function closeModal(id) {
+        document.getElementById(id).style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+    window.onclick = function (event) {
+        if (event.target.classList.contains('modal-overlay')) {
+            closeModal(event.target.id);
+        }
+    }
+</script>
 {% endblock %}

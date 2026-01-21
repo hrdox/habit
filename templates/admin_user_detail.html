@@ -1,0 +1,510 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    :root {
+        --admin-primary: #6366f1;
+        --admin-secondary: #8b5cf6;
+        --admin-border: rgba(255, 255, 255, 0.1);
+        --admin-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --admin-bg-soft: rgba(99, 102, 241, 0.05);
+    }
+
+    .admin-container {
+        display: flex;
+        gap: 2.5rem;
+        align-items: flex-start;
+        padding-top: 1rem;
+    }
+
+    .admin-sidebar {
+        width: 280px;
+        padding: 1.5rem;
+        position: sticky;
+        top: 2rem;
+        flex-shrink: 0;
+        background: var(--bg-card);
+        border: 1px solid var(--admin-border);
+        border-radius: 20px;
+        box-shadow: var(--admin-shadow);
+    }
+
+    .admin-main {
+        flex: 1;
+        min-width: 0;
+    }
+
+    @media (max-width: 992px) {
+        .admin-container {
+            flex-direction: column;
+        }
+
+        .admin-sidebar {
+            width: 100%;
+            position: static;
+        }
+
+        .admin-sidebar ul {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+    }
+
+    .sidebar-link {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        text-decoration: none;
+        color: var(--text-muted);
+        transition: all 0.3s ease;
+        font-weight: 500;
+        margin-bottom: 0.4rem;
+    }
+
+    .sidebar-link:hover {
+        background: var(--admin-bg-soft);
+        color: var(--admin-primary);
+    }
+
+    .sidebar-link.active {
+        background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary));
+        color: white;
+    }
+
+    .profile-header {
+        background: var(--bg-card);
+        border-radius: 24px;
+        padding: 2.5rem;
+        border: 1px solid var(--admin-border);
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .profile-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, var(--admin-primary) 0%, transparent 70%);
+        opacity: 0.05;
+        transform: translate(20%, -20%);
+    }
+
+    .user-big-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 24px;
+        background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary));
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        font-weight: 700;
+        box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+    }
+
+    .tab-btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        border: 1px solid var(--admin-border);
+        background: var(--bg-card);
+        color: var(--text-muted);
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .tab-btn:hover {
+        transform: translateY(-2px);
+        border-color: var(--admin-primary);
+        color: var(--admin-primary);
+    }
+
+    .tab-btn.active {
+        background: var(--admin-primary);
+        color: white;
+        border-color: var(--admin-primary);
+        box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.2);
+    }
+
+    .premium-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .premium-table th {
+        padding: 1.25rem 1rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--admin-border);
+    }
+
+    .premium-table td {
+        padding: 1.25rem 1rem;
+        border-bottom: 1px solid var(--admin-border);
+    }
+
+    .tab-content {
+        display: none;
+        animation: slideUp 0.4s ease;
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .tab-content.active {
+        display: block;
+    }
+
+    .privacy-card {
+        padding: 3rem;
+        text-align: center;
+        background: hsla(0, 0%, 50%, 0.02);
+        border: 2px dashed var(--admin-border);
+        border-radius: 24px;
+        backdrop-filter: blur(4px);
+    }
+
+    .badge {
+        padding: 0.35rem 0.75rem;
+        border-radius: 100px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+</style>
+
+<div class="admin-container">
+    <div class="admin-sidebar" style="margin-top: 1rem;">
+        <div
+            style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--admin-border);">
+            <div
+                style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary)); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.2rem;">
+                🛡️
+            </div>
+            <h3 style="margin: 0; font-size: 1.25rem;">Admin Center</h3>
+        </div>
+        <ul style="list-style: none; padding: 0; margin: 0;">
+            <li><a href="{{ url_for('admin_dashboard') }}" class="sidebar-link"><span>📊</span> Overview</a></li>
+            <li><a href="{{ url_for('admin_users') }}" class="sidebar-link active"><span>👥</span> Users</a></li>
+            <li><a href="{{ url_for('admin_duas') }}" class="sidebar-link"><span>📖</span> Duas</a></li>
+            <li><a href="{{ url_for('admin_events') }}" class="sidebar-link"><span>🌙</span> Events</a></li>
+            <li><a href="{{ url_for('admin_logs') }}" class="sidebar-link"><span>📜</span> Audit Logs</a></li>
+        </ul>
+    </div>
+
+    <div class="admin-main">
+        <div class="profile-header">
+            <div style="display: flex; gap: 2rem; align-items: center;">
+                <div class="user-big-avatar">{{ user.username[0]|upper }}</div>
+                <div style="flex: 1;">
+                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+                        <h1 style="margin: 0; font-size: 2rem;">{{ user.username }}</h1>
+                        <span class="badge {{ 'badge-active' if not user.is_banned else 'badge-banned' }}"
+                            style="background: {{ 'rgba(16, 185, 129, 0.1)' if not user.is_banned else 'rgba(239, 68, 68, 0.1)' }}; color: {{ '#10b981' if not user.is_banned else '#ef4444' }};">
+                            {{ 'ACTIVE ACCOUNT' if not user.is_banned else 'SUSPENDED' }}
+                        </span>
+                    </div>
+                    <div style="color: var(--text-muted); display: flex; gap: 1.5rem; font-size: 0.95rem;">
+                        <span>📧 {{ user.email }}</span>
+                        <span>📅 Joined {{ user.join_date.strftime('%b %d, %Y') }}</span>
+                        <span>🔑 Role: {{ user.role|upper }}</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.75rem;">
+                    <form action="{{ url_for('admin_ban_user', user_id=user.id) }}" method="POST">
+                        <button type="submit" class="btn {{ 'btn-primary' if user.is_banned else 'btn-outline' }}"
+                            style="border-radius: 12px; padding: 0.7rem 1.25rem; {{ 'background: #10b981; border: none;' if user.is_banned else 'color: #f59e0b; border-color: #f59e0b;' }}">
+                            {{ '🔓 Restore Access' if user.is_banned else '🚫 Suspend User' }}
+                        </button>
+                    </form>
+                    <form action="{{ url_for('admin_delete_user', user_id=user.id) }}" method="POST"
+                        onsubmit="return confirm('Delete this user permanently?')">
+                        <button type="submit" class="btn btn-outline"
+                            style="border-radius: 12px; padding: 0.7rem 1.25rem; color: var(--danger); border-color: var(--danger);">
+                            🗑️ Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs"
+            style="display: flex; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid var(--admin-border); padding-bottom: 1rem;">
+            <button class="tab-btn active" data-target="habits">📋 Habits</button>
+            <button class="tab-btn" data-target="prayers">🕌 Prayers</button>
+            <button class="tab-btn" data-target="schedule">📅 Schedule</button>
+            <button class="tab-btn" data-target="days">📝 Journal</button>
+        </div>
+
+        <div id="habits" class="tab-content active">
+            <div class="card" style="padding: 1.5rem; border-radius: 20px;">
+                <h3 style="margin-top: 0;">Configured Habits</h3>
+                <table class="premium-table">
+                    <thead>
+                        <tr>
+                            <th>Habit Name</th>
+                            <th>Category</th>
+                            <th>Frequency</th>
+                            <th>Target</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for h in habits %}
+                        <tr>
+                            <td style="font-weight: 600;">{{ h.name }}</td>
+                            <td><span class="badge"
+                                    style="background: var(--admin-bg-soft); color: var(--admin-primary);">{{ h.category
+                                    }}</span></td>
+                            <td>{{ h.frequency }}</td>
+                            <td>{{ h.target_value }}</td>
+                            <td style="font-weight: 700; color: var(--admin-secondary);">+{{ h.points }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="prayers" class="tab-content">
+            <div class="card" style="padding: 1.5rem; border-radius: 20px;">
+                <h3 style="margin-top: 0;">Prayer Fulfillment History</h3>
+                <table class="premium-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Fajr</th>
+                            <th>Dhuhr</th>
+                            <th>Asr</th>
+                            <th>Maghrib</th>
+                            <th>Isha</th>
+                            <th>Spiritual Score</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in prayer_logs %}
+                        <tr>
+                            <td style="font-weight: 600;">{{ p.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ '✅' if p.fajr else '❌' }}</td>
+                            <td>{{ '✅' if p.dhuhr else '❌' }}</td>
+                            <td>{{ '✅' if p.asr else '❌' }}</td>
+                            <td>{{ '✅' if p.maghrib else '❌' }}</td>
+                            <td>{{ '✅' if p.isha else '❌' }}</td>
+                            <td style="font-weight: 700; color: #10b981;">{{ p.spiritual_score }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="schedule" class="tab-content">
+            <div class="card" style="padding: 1.5rem; border-radius: 20px;">
+                <h3 style="margin-top: 0;">Routine & Task Execution</h3>
+                <table class="premium-table">
+                    <thead>
+                        <tr>
+                            <th>Execution Date</th>
+                            <th>Task Description</th>
+                            <th>Status</th>
+                            <th>Reward</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in schedule_logs %}
+                        <tr>
+                            <td>{{ s.date.strftime('%Y-%m-%d') }}</td>
+                            <td style="font-weight: 600;">{{ s.routine.title if s.routine else s.task }}</td>
+                            <td>
+                                <span class="badge"
+                                    style="background: {{ 'rgba(16, 185, 129, 0.1)' if s.status else 'rgba(239, 68, 68, 0.1)' }}; color: {{ '#10b981' if s.status else '#ef4444' }};">
+                                    {{ 'COMPLETED' if s.status else 'MISSED' }}
+                                </span>
+                            </td>
+                            <td style="font-weight: 700;">{{ s.points }} pts</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="days" class="tab-content">
+            <div id="reflection-privacy-warning" class="privacy-card">
+                <div style="font-size: 4rem; margin-bottom: 1.5rem;">🔒</div>
+                <h2 style="color: var(--text-main); margin-top: 0;">Protected Personal Journal</h2>
+                <p style="max-width: 550px; margin: 0 auto 2.5rem; color: var(--text-muted); line-height: 1.6;">
+                    This section contains the user's private reflections and intentions. Accessing this data requires an
+                    explicit justification which will be permanently logged for auditing purposes.
+                </p>
+                <button id="view-journal-btn" data-user-id="{{ user.id }}" class="btn btn-primary"
+                    style="padding: 1rem 2.5rem; border-radius: 14px; font-weight: 700; background: linear-gradient(135deg, #ef4444, #b91c1c); border: none; box-shadow: 0 10px 15px -3px rgba(239, 68, 68, 0.3);">
+                    Accept & Unlock Data
+                </button>
+            </div>
+
+            <div id="reflection-content" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                    <h3>Personal Reflections History</h3>
+                    <div id="access-reason-badge"
+                        style="font-size: 0.8rem; background: var(--admin-bg-soft); padding: 0.5rem 1rem; border-radius: 8px; color: var(--admin-primary); font-weight: 600; border: 1px solid rgba(99,102,241,0.2);">
+                    </div>
+                </div>
+                {% for d in days %}
+                <div class="card" style="margin-bottom: 1.5rem; padding: 1.5rem; border-radius: 20px;">
+                    <div
+                        style="display: flex; justify-content: space-between; margin-bottom: 1rem; align-items: center;">
+                        <span style="font-weight: 700; color: var(--text-muted);">{{ d.date.strftime('%A, %B %d, %Y')
+                            }}</span>
+                        <div style="display: flex; gap: 1rem;">
+                            {% set mood_map = {1: '😞', 2: '😟', 3: '😐', 4: '😊', 5: '🤩'} %}
+                            {% set energy_map = {1: '😴', 2: '🥱', 3: '😐', 4: '⚡', 5: '🔥'} %}
+                            <span class="badge"
+                                style="background: rgba(99, 102, 241, 0.05); color: var(--admin-primary); display: flex; align-items: center; gap: 0.4rem;">
+                                Mood: {{ mood_map.get(d.mood, 'N/A') }} <small style="opacity: 0.6;">({{ d.mood
+                                    }}/5)</small>
+                            </span>
+                            <span class="badge"
+                                style="background: rgba(139, 92, 246, 0.05); color: var(--admin-secondary); display: flex; align-items: center; gap: 0.4rem;">
+                                Energy: {{ energy_map.get(d.energy_level, 'N/A') }} <small style="opacity: 0.6;">({{
+                                    d.energy_level }}/5)</small>
+                            </span>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                        <div
+                            style="background: var(--admin-bg-soft); padding: 1.25rem; border-radius: 12px; border-left: 4px solid var(--admin-primary);">
+                            <label
+                                style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.5rem; color: var(--admin-primary);">🎯
+                                Daily Intention</label>
+                            <div style="font-size: 1.05rem; line-height: 1.6; color: var(--text-main);">
+                                {{ d.intention or '—' }}
+                            </div>
+                        </div>
+                        <div
+                            style="background: var(--admin-bg-soft); padding: 1.25rem; border-radius: 12px; border-left: 4px solid var(--admin-secondary);">
+                            <label
+                                style="display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 0.5rem; color: var(--admin-secondary);">📝
+                                End of Day Reflection</label>
+                            <div style="font-size: 1.05rem; line-height: 1.6; color: var(--text-main);">
+                                {{ d.reflection or '—' }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        style="display: flex; gap: 2rem; padding: 1rem; background: rgba(0,0,0,0.02); border-radius: 12px; align-items: center; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 150px;">
+                            <label
+                                style="display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.25rem;">Habits
+                                Completed</label>
+                            <span style="font-weight: 600;">{{ d.habit_logs|selectattr('status', 'equalto',
+                                true)|list|length }} / {{ d.habit_logs|length }}</span>
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label
+                                style="display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.25rem;">Prayers
+                                Fulfilled</label>
+                            {% set pl = d.prayer_logs[0] if d.prayer_logs else None %}
+                            {% if pl %}
+                            <div style="display: flex; gap: 4px;">
+                                <span style="opacity: {{ 1 if pl.fajr else 0.2 }}">F</span>
+                                <span style="opacity: {{ 1 if pl.dhuhr else 0.2 }}">D</span>
+                                <span style="opacity: {{ 1 if pl.asr else 0.2 }}">A</span>
+                                <span style="opacity: {{ 1 if pl.maghrib else 0.2 }}">M</span>
+                                <span style="opacity: {{ 1 if pl.isha else 0.2 }}">I</span>
+                            </div>
+                            {% else %}
+                            <span style="opacity: 0.3;">None logged</span>
+                            {% endif %}
+                        </div>
+                        <div style="flex: 1; min-width: 150px;">
+                            <label
+                                style="display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.25rem;">Schedule
+                                Items</label>
+                            <span style="font-weight: 600;">{{ d.schedule_logs|selectattr('status', 'equalto',
+                                true)|list|length }} / {{ d.schedule_logs|length }}</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <label
+                                style="display: block; font-size: 0.7rem; color: var(--text-muted); margin-bottom: 0.25rem;">Daily
+                                Reward</label>
+                            <strong style="color: var(--admin-primary); font-size: 1.2rem;">{{ d.total_score }} <small
+                                    style="font-size: 0.7rem; font-weight: 400; opacity: 0.7;">pts</small></strong>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<template id="audit-log-url" data-url="{{ url_for('admin_log_action') }}"></template>
+
+<script>
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+
+            const targetId = tab.dataset.target;
+            contents.forEach(c => c.classList.remove('active'));
+            document.getElementById(targetId).classList.add('active');
+        });
+    });
+
+    const viewJournalBtn = document.getElementById('view-journal-btn');
+    if (viewJournalBtn) {
+        viewJournalBtn.addEventListener('click', () => {
+            const reason = prompt("Legal & Ethical Justification Required (Min. 10 chars):");
+            if (reason && reason.trim().length >= 10) {
+                const url = document.getElementById('audit-log-url').dataset.url;
+                const targetUserId = viewJournalBtn.getAttribute('data-user-id');
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'view_reflections',
+                        target_user_id: targetUserId,
+                        reason: reason
+                    })
+                }).then(() => {
+                    document.getElementById('reflection-privacy-warning').style.display = 'none';
+                    document.getElementById('reflection-content').style.display = 'block';
+                    document.getElementById('access-reason-badge').textContent = "Access Authorized: " + reason;
+                });
+            } else {
+                alert("Authorization denied. A detailed reason (at least 10 characters) is mandatory.");
+            }
+        });
+    }
+</script>
+{% endblock %}

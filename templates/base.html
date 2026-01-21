@@ -67,6 +67,13 @@
                         class="nav-link {{ 'active' if 'analytics' in request.endpoint else '' }}">
                         <span class="nav-icon">📈</span> Statistics
                     </a></li>
+                {% if current_user.is_admin %}
+                <li><a href="{{ url_for('admin_dashboard') }}"
+                        class="nav-link {{ 'active' if 'admin' in request.endpoint else '' }}"
+                        style="color: var(--danger); font-weight: 700; background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.1); margin-top: 1rem;">
+                        <span class="nav-icon">🛡️</span> Admin Center
+                    </a></li>
+                {% endif %}
                 <li style="margin-top: auto;">
                     <a href="{{ url_for('logout') }}" class="nav-link">
                         <span class="nav-icon">🚪</span> Logout
@@ -92,14 +99,37 @@
 
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-            {% for category, message in messages %}
-            <div class="card"
-                style="background-color: {{ '#d1fae5' if category=='success' else '#fee2e2' }}; color: {{ '#065f46' if category=='success' else '#991b1b' }}; padding: 1rem; border: none;">
-                {{ message }}
+            <div style="margin-bottom: 2rem;">
+                {% for category, message in messages %}
+                <div class="card" style="background: {{ 'linear-gradient(135deg, #d1fae5, #ecfdf5)' if category=='success' else 'linear-gradient(135deg, #fee2e2, #fef2f2)' }}; 
+                       color: {{ '#065f46' if category=='success' else '#991b1b' }}; 
+                       padding: 1.25rem 1.5rem; 
+                       border: 1px solid {{ '#a7f3d0' if category=='success' else '#fecaca' }}; 
+                       border-radius: 16px;
+                       box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+                       display: flex; align-items: center; gap: 1rem;
+                       animation: fadeInDown 0.5s ease;">
+                    <span style="font-size: 1.2rem;">{{ '✨' if category=='success' else '⚠️' }}</span>
+                    <span style="font-weight: 500;">{{ message }}</span>
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
             {% endif %}
             {% endwith %}
+
+            <style>
+                @keyframes fadeInDown {
+                    from {
+                        opacity: 0;
+                        transform: translateY(-10px);
+                    }
+
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            </style>
 
             {% block content %}{% endblock %}
         </main>
