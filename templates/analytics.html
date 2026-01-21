@@ -3,61 +3,57 @@
 {% block title %}Analytics{% endblock %}
 
 {% block content %}
-<div class="analytics-container">
+<div class="dashboard-grid" style="grid-template-columns: 1fr;">
     <!-- Summary Cards -->
-    <div class="summary-stats-grid">
-        <div class="stat-summary-card card">
-            <div class="stat-emoji">🔥</div>
-            <h3 class="stat-value"><span id="best-day">0</span></h3>
-            <p>Best Score (All Time)</p>
+    <div class="dashboard-grid" style="margin-bottom: 2rem;">
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 2.5rem;">🔥</div>
+            <h3><span id="best-day">0</span></h3>
+            <p class="text-muted">Best Score (All Time)</p>
         </div>
-        <div class="stat-summary-card card">
-            <div class="stat-emoji">⭐</div>
-            <h3 class="stat-value"><span id="avg-daily">0</span></h3>
-            <p>Daily Average</p>
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 2.5rem;">⭐</div>
+            <h3><span id="avg-daily">0</span></h3>
+            <p class="text-muted">Daily Average</p>
         </div>
-        <div class="stat-summary-card card">
-            <div class="stat-emoji">📈</div>
-            <h3 class="stat-value"><span id="total-score">0</span></h3>
-            <p>Score (Last 30 Days)</p>
+        <div class="card" style="text-align: center;">
+            <div style="font-size: 2.5rem;">📈</div>
+            <h3><span id="total-score">0</span></h3>
+            <p class="text-muted">Total Points (Last 30 Days)</p>
         </div>
     </div>
 
-    <!-- Charts Section -->
-    <div class="charts-grid-analytics">
+    <!-- Charts -->
+    <div class="grid-2">
         <!-- Main Line Chart -->
-        <div class="card full-width-chart">
-            <div class="chart-header">
+        <div class="card" style="grid-column: span 2;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                 <h3>Overall Progress</h3>
-                <div class="chart-actions">
-                    <select id="time-range" class="modern-select-small" onchange="loadAnalytics()">
+                <div>
+                    <select id="time-range" class="form-control" onchange="loadAnalytics()">
                         <option value="7">Last 7 Days</option>
                         <option value="30" selected>Last 30 Days</option>
                         <option value="365">Last Year</option>
                     </select>
                 </div>
             </div>
-            <div class="chart-body">
+            <div style="height: 300px; position: relative;">
                 <canvas id="scoreChart"></canvas>
             </div>
         </div>
 
         <!-- Breakdown Chart -->
         <div class="card">
-            <div class="chart-header">
-                <h3>Habits vs Prayers</h3>
-            </div>
-            <div class="chart-body secondary">
+            <h3>Habits vs Prayers</h3>
+            <div style="height: 250px; position: relative;">
                 <canvas id="breakdownChart"></canvas>
             </div>
         </div>
 
-        <!-- Doughnut Chart -->
+        <!-- Radar Chart (Consistency) -->
         <div class="card">
-            <div class="chart-header">
-                <h3>Consistency Overview</h3>
-            </div>
-            <div class="chart-body secondary">
+            <h3>Consistency Overview</h3>
+            <div style="height: 250px; position: relative;">
                 <canvas id="consistencyChart"></canvas>
             </div>
         </div>
@@ -65,132 +61,24 @@
 </div>
 
 <style>
-    .analytics-container {
-        padding-bottom: 2rem;
-    }
-
-    /* Summary Stats Grid - Responsive */
-    .summary-stats-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1.5rem;
-        margin-bottom: 2.5rem;
-    }
-
-    .stat-summary-card {
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 2.5rem 1.5rem;
-        border-radius: 20px;
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    }
-
-    .stat-summary-card:hover {
-        transform: translateY(-8px);
-    }
-
-    .stat-emoji {
-        font-size: 3rem;
-        margin-bottom: 0.75rem;
-    }
-
-    .stat-value {
-        font-size: 2.4rem;
-        font-weight: 800;
-        margin-bottom: 0.5rem;
-        color: var(--text-main);
-        font-family: 'Outfit', sans-serif;
-    }
-
-    .stat-summary-card p {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: var(--text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-
-    /* Charts Grid */
-    .charts-grid-analytics {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1.5rem;
-    }
-
-    .full-width-chart {
-        grid-column: span 2;
-    }
-
-    .chart-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.5rem;
-    }
-
-    .chart-header h3 {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: var(--text-main);
-    }
-
-    .chart-body {
-        height: 350px;
-        position: relative;
-    }
-
-    .chart-body.secondary {
-        height: 280px;
-    }
-
-    .modern-select-small {
-        padding: 0.5rem 1rem;
-        border-radius: 10px;
-        border: 1px solid var(--border-color);
-        background: var(--bg-surface);
-        color: var(--text-main);
-        font-size: 0.9rem;
-        font-weight: 600;
-        outline: none;
-    }
-
-    /* Mobile Responsive Logic */
-    @media (max-width: 1024px) {
-        .summary-stats-grid {
-            gap: 1rem;
-        }
-
-        .stat-summary-card {
-            padding: 2rem 1rem;
-        }
-    }
-
+    /* Ensure the charts grid also stacks on mobile */
     @media (max-width: 768px) {
-
-        .summary-stats-grid,
-        .charts-grid-analytics {
-            grid-template-columns: 1fr;
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr !important;
         }
 
-        .full-width-chart {
-            grid-column: span 1;
+        .grid-2 .card {
+            grid-column: span 1 !important;
         }
+    }
 
-        .stat-emoji {
-            font-size: 2.5rem;
-        }
-
-        .stat-value {
-            font-size: 2rem;
-        }
-
-        .chart-body {
-            height: 250px;
+    /* Reverting the 2-column grid for desktop */
+    @media (min-width: 769px) {
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
         }
     }
 </style>
@@ -241,28 +129,15 @@
                         borderColor: '#6366f1',
                         backgroundColor: 'rgba(99, 102, 241, 0.1)',
                         fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#6366f1',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
-                        pointRadius: 4
+                        tension: 0.4
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false }
-                },
                 scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: 'rgba(0,0,0,0.05)' }
-                    },
-                    x: {
-                        grid: { display: false }
-                    }
+                    y: { beginAtZero: true }
                 }
             }
         });
@@ -280,14 +155,12 @@
                     {
                         label: 'Habits',
                         data: data.habit_scores,
-                        backgroundColor: '#10b981',
-                        borderRadius: 6
+                        backgroundColor: '#10b981'
                     },
                     {
                         label: 'Prayers',
                         data: data.prayer_scores,
-                        backgroundColor: '#3b82f6',
-                        borderRadius: 6
+                        backgroundColor: '#3b82f6'
                     }
                 ]
             },
@@ -295,17 +168,18 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
+                    tooltip: { mode: 'index', intersect: false },
                 },
                 scales: {
-                    x: { stacked: true, grid: { display: false } },
-                    y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }
+                    x: { stacked: true },
+                    y: { stacked: true, beginAtZero: true }
                 }
             }
         });
     }
 
     function renderConsistencyChart(data) {
+        // Simple aggregate for Radar
         const totalHabit = data.habit_scores.reduce((a, b) => a + b, 0);
         const totalPrayer = data.prayer_scores.reduce((a, b) => a + b, 0);
 
@@ -318,20 +192,15 @@
                 labels: ['Habit Score', 'Prayer Score'],
                 datasets: [{
                     data: [totalHabit, totalPrayer],
-                    backgroundColor: ['#10b981', '#3b82f6'],
-                    borderWidth: 0,
-                    hoverOffset: 10
+                    backgroundColor: ['#10b981', '#3b82f6']
                 }]
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } }
-                },
-                cutout: '70%'
+                maintainAspectRatio: false
             }
         });
+
     }
 </script>
 {% endblock %}
