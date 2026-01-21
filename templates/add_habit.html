@@ -1,117 +1,512 @@
 {% extends "base.html" %}
 
+{% block title %}Manage Habits{% endblock %}
+
 {% block content %}
-<h2>Manage Habits</h2>
-<div class="dashboard-grid">
-    <!-- List of Habits -->
-    <div class="card">
-        <h3>Your Habits</h3>
-        {% if habits %}
-        <ul style="list-style: none; padding: 0;">
-            {% for h in habits %}
-            <li class="habit-item">
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                    <div>
-                        <strong>{{ h.name }}</strong>
-                        <span class="text-muted"> - {{ h.frequency }}</span>
-                        <br><span style="font-size: 0.8rem;">{{ h.category }}</span>
+<div class="habits-container">
+    <!-- Header Summary Section -->
+    <div class="habits-header">
+        <div class="header-content">
+            <h1>Habit Architect</h1>
+            <p>Design your system, define your identity, and master your routines.</p>
+        </div>
+        <div class="habit-stats">
+            <div class="stat-card">
+                <span class="stat-icon">✨</span>
+                <div class="stat-info">
+                    <span class="stat-value">{{ habits|length }}</span>
+                    <small>Active Habits</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="habits-layout">
+        <!-- Habit List Column -->
+        <div class="habits-list-section">
+            <h3 class="section-title">
+                <span class="title-icon">📜</span>
+                Your Habit Inventory
+            </h3>
+
+            {% if habits %}
+            <div class="habit-cards-grid">
+                {% set category_data = {
+                'General': {'icon': '📋', 'color': '#6b7280'},
+                'Health': {'icon': '🥗', 'color': '#10b981'},
+                'Study': {'icon': '📚', 'color': '#3b82f6'},
+                'Spiritual': {'icon': '🕌', 'color': '#8b5cf6'},
+                'Social': {'icon': '🤝', 'color': '#f59e0b'}
+                } %}
+
+                {% for h in habits %}
+                {% set cat = category_data.get(h.category, category_data['General']) %}
+                <div class="habit-premium-card {{ 'paused' if h.is_paused else '' }}"
+                    style="border-left: 6px solid {{ cat.color }};">
+                    <div class="card-category-tag" style="background: {{ cat.color }}; color: #ffffff;">
+                        {{ cat.icon }} {{ h.category }}
                     </div>
-                    <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        <a href="{{ url_for('edit_habit', habit_id=h.id) }}" class="btn btn-outline"
-                            style="padding: 0.2rem 0.6rem; font-size: 0.75rem;">Edit</a>
-                        <form action="{{ url_for('delete_habit', habit_id=h.id) }}" method="POST"
-                            style="display:inline;"
-                            onsubmit="return confirm('Are you sure you want to delete this habit?');">
-                            <button type="submit" class="btn"
-                                style="background-color: #ef4444; color: white; padding: 0.2rem 0.6rem; font-size: 0.75rem;">Delete</button>
+
+                    <div class="card-header">
+                        <div class="habit-main-info">
+                            <h4>{{ h.name }}</h4>
+                            <p class="habit-identity">
+                                {% if h.identity_label %}
+                                <span class="identity-badge">👤 {{ h.identity_label }}</span>
+                                {% else %}
+                                <span class="frequency-badge">🔁 {{ h.frequency }}</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="habit-priority-stars">
+                            {% set p_val = h.priority or 3 %}
+                            {% for i in range(1, 6) %}
+                            <span class="p-star {{ 'filled' if i <= p_val else 'empty' }}">⭐</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="card-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Daily Goal</span>
+                            <span class="detail-value">{{ h.target_value }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Unit / Metric</span>
+                            <span class="detail-value">{{ h.unit or 'Reps' }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Difficulty</span>
+                            <span class="detail-value">{{ h.difficulty or 1 }}/10</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Points</span>
+                            <span class="detail-value" style="color: #10b981;">+{{ h.points }}</span>
+                        </div>
+                    </div>
+
+                    <div class="card-actions">
+                        <a href="{{ url_for('edit_habit', habit_id=h.id) }}" class="btn-action edit" title="Edit Habit">
+                            <span>✏️</span> Edit
+                        </a>
+                        <form action="{{ url_for('delete_habit', habit_id=h.id) }}" method="POST" class="delete-form"
+                            onsubmit="return confirm('Are you sure you want to permanently delete this habit?');">
+                            <button type="submit" class="btn-action delete" title="Delete Habit">
+                                <span>🗑️</span> Delete
+                            </button>
                         </form>
                     </div>
                 </div>
-            </li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        <p>No habits found.</p>
-        {% endif %}
-    </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">🌱</div>
+                <h4>Start your journey</h4>
+                <p>You haven't added any habits yet. Use the form to create your first one!</p>
+            </div>
+            {% endif %}
+        </div>
 
-    <!-- Add Habit Form -->
-    <div class="card">
-        <h3>Add New Habit</h3>
-        <form action="{{ url_for('add_habit') }}" method="POST">
-            <div class="form-group">
-                <label>Habit Name</label>
-                <input type="text" name="name" placeholder="e.g. Read Quran, Drink Water" required>
-            </div>
-            <div class="form-group">
-                <label>Category</label>
-                <select name="category">
-                    <option value="General">General</option>
-                    <option value="Health">Health</option>
-                    <option value="Study">Study</option>
-                    <option value="Spiritual">Spiritual (Deen)</option>
-                    <option value="Social">Social</option>
-                </select>
-            </div>
+        <!-- Add Habit Form Column -->
+        <div class="habits-form-section">
+            <div class="premium-form-card">
+                <h3 class="section-title">
+                    <span class="title-icon">➕</span>
+                    Add New Habit
+                </h3>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <div class="form-group">
-                    <label>Priority (1-5)</label>
-                    <small class="text-muted" style="display: block; margin-bottom: 0.3rem;">Impact on your life &
-                        points.</small>
-                    <select name="priority">
-                        <option value="1">1 - Low (1x)</option>
-                        <option value="2">2 - Medium-Low</option>
-                        <option value="3" selected>3 - Medium (2x)</option>
-                        <option value="4">4 - High</option>
-                        <option value="5">5 - Critical (3x)</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Difficulty (1-10)</label>
-                    <small class="text-muted" style="display: block; margin-bottom: 0.3rem;">Effort required & base
-                        points.</small>
-                    <select name="difficulty">
-                        <option value="1">1 - Trivial</option>
-                        <option value="3" selected>3 - Easy</option>
-                        <option value="5">5 - Moderate</option>
-                        <option value="8">8 - Hard</option>
-                        <option value="10">10 - Heroic</option>
-                    </select>
-                </div>
-            </div>
+                <form action="{{ url_for('add_habit') }}" method="POST" class="modern-form">
+                    <div class="form-section">
+                        <label class="form-label">What do you want to achieve?</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">🎯</span>
+                            <input type="text" name="name" placeholder="e.g. Morning Prayer, Reading Quran" required>
+                        </div>
+                    </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                <div class="form-group">
-                    <label>Target Value (Reps)</label>
-                    <small class="text-muted" style="display: block; margin-bottom: 0.3rem;">Number of times to do this
-                        daily.</small>
-                    <input type="number" name="target_value" value="1" min="1">
-                </div>
-                <div class="form-group">
-                    <label>Unit (Optional)</label>
-                    <small class="text-muted" style="display: block; margin-bottom: 0.3rem;">e.g., pages, laps,
-                        mins.</small>
-                    <input type="text" name="unit" placeholder="mins, pages">
-                </div>
-            </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Category</label>
+                            <select name="category" class="modern-select">
+                                <option value="General">General</option>
+                                <option value="Health">Health</option>
+                                <option value="Study">Study</option>
+                                <option value="Spiritual">Spiritual (Deen)</option>
+                                <option value="Social">Social</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Frequency</label>
+                            <select name="frequency" class="modern-select">
+                                <option value="Daily">Daily</option>
+                                <option value="Weekly">Weekly</option>
+                            </select>
+                        </div>
+                    </div>
 
-            <div class="form-group">
-                <label>Identity Label (Optional)</label>
-                <input type="text" name="identity_label" placeholder='"I am a consistent reader"'>
-                <small class="text-muted" style="display:block; margin-top:0.2rem;">Who do you become by doing
-                    this?</small>
-            </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Daily Goal (Target)</label>
+                            <input type="number" name="target_value" value="1" min="1" class="modern-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Unit (e.g. pages, mins)</label>
+                            <input type="text" name="unit" placeholder="mins, pages, reps" class="modern-input">
+                        </div>
+                    </div>
 
-            <div class="form-group">
-                <label>Frequency</label>
-                <select name="frequency">
-                    <option value="Daily">Daily</option>
-                    <option value="Weekly">Weekly</option>
-                </select>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Priority (Impact)</label>
+                            <select name="priority" class="modern-select">
+                                <option value="1">⭐ Low</option>
+                                <option value="2">⭐⭐ Medium-Low</option>
+                                <option value="3" selected>⭐⭐⭐ Medium</option>
+                                <option value="4">⭐⭐⭐⭐ High</option>
+                                <option value="5">⭐⭐⭐⭐⭐ Critical</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Difficulty (1-10)</label>
+                            <select name="difficulty" class="modern-select">
+                                <option value="1">1 - Trivial</option>
+                                <option value="3" selected>3 - Easy</option>
+                                <option value="5">5 - Moderate</option>
+                                <option value="8">8 - Hard</option>
+                                <option value="10">10 - Heroic</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <label class="form-label">Identity Affirmation (Optional)</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">👤</span>
+                            <input type="text" name="identity_label" placeholder='"I am a consistent learner"'>
+                        </div>
+                        <small class="form-help">Focus on who you become, not just what you do.</small>
+                    </div>
+
+                    <button type="submit" class="btn-premium">
+                        Create New Habit
+                        <span class="btn-sparkle">✨</span>
+                    </button>
+                </form>
             </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%;">Create Habit</button>
-        </form>
+        </div>
     </div>
 </div>
+
+<style>
+    :root {
+        --h-primary: #6366f1;
+        --h-bg-premium: linear-gradient(135deg, #4f46e5, #7c3aed);
+    }
+
+    [data-theme="dark"] .section-title,
+    [data-theme="dark"] .form-label,
+    [data-theme="dark"] .habit-main-info h4,
+    [data-theme="dark"] .detail-value {
+        color: var(--text-main) !important;
+    }
+
+    [data-theme="dark"] .stat-value,
+    [data-theme="dark"] .stat-info small,
+    [data-theme="dark"] .header-content h1,
+    [data-theme="dark"] .header-content p {
+        color: #ffffff !important;
+    }
+
+    .habits-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding-bottom: 3rem;
+    }
+
+    /* Header Section */
+    .habits-header {
+        background: var(--h-bg-premium);
+        border-radius: 24px;
+        padding: 3rem;
+        color: #ffffff;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .header-content h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        color: #ffffff !important;
+        /* Header text is always white against premium bg */
+    }
+
+    .header-content p {
+        opacity: 0.9;
+        font-size: 1.1rem;
+        max-width: 500px;
+        color: #ffffff !important;
+    }
+
+    .stat-card {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        padding: 1.5rem 2.5rem;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #ffffff;
+    }
+
+    .stat-info small {
+        color: #ffffff;
+        opacity: 0.8;
+        font-weight: 500;
+        text-transform: uppercase;
+    }
+
+    /* Layout */
+    .habits-layout {
+        display: grid;
+        grid-template-columns: 1.6fr 1fr;
+        gap: 2.5rem;
+    }
+
+    .section-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--text-main);
+    }
+
+    /* Habit Cards */
+    .habit-cards-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+
+    .habit-premium-card {
+        background: var(--bg-card);
+        border-radius: 20px;
+        padding: 1.5rem;
+        border: 1px solid var(--border-color);
+        transition: all 0.3s;
+        position: relative;
+    }
+
+    .habit-premium-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .card-category-tag {
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 0.5rem 1rem;
+        font-size: 0.75rem;
+        font-weight: 700;
+        border-bottom-left-radius: 12px;
+    }
+
+    .habit-main-info h4 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 0.5rem;
+    }
+
+    .identity-badge {
+        background: rgba(99, 102, 241, 0.1);
+        color: var(--h-primary);
+        padding: 0.3rem 0.75rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .frequency-badge {
+        color: #6b7280;
+        font-size: 0.85rem;
+    }
+
+    .habit-priority-stars {
+        display: flex;
+        gap: 2px;
+    }
+
+    .p-star.empty {
+        opacity: 0.2;
+        filter: grayscale(100%);
+    }
+
+    .card-details {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.75rem;
+        background: var(--bg-surface);
+        padding: 1rem;
+        border-radius: 12px;
+        margin: 1.5rem 0;
+    }
+
+    .detail-label {
+        font-size: 0.65rem;
+        color: #6b7280;
+        text-transform: uppercase;
+        font-weight: 800;
+    }
+
+    .detail-value {
+        font-weight: 700;
+        color: var(--text-main);
+        font-size: 0.9rem;
+    }
+
+    .card-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .btn-action {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.7rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-action.edit {
+        background: #eef2ff;
+        color: #4f46e5;
+    }
+
+    .btn-action.delete {
+        background: #fee2e2;
+        color: #ef4444;
+    }
+
+    .premium-form-card {
+        background: var(--bg-card);
+        border-radius: 24px;
+        padding: 2.5rem;
+        border: 1px solid var(--border-color);
+        position: sticky;
+        top: 2rem;
+    }
+
+    .modern-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-main);
+        margin-bottom: 0.5rem;
+    }
+
+    .input-with-icon {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 1rem;
+    }
+
+    .input-with-icon input {
+        width: 100%;
+        padding: 0.85rem 1rem 0.85rem 3rem;
+        border-radius: 12px;
+        border: 1.5px solid #e5e7eb;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+    }
+
+    .modern-select,
+    .modern-input {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        border: 1.5px solid var(--border-color);
+        background: var(--bg-surface);
+        color: var(--text-main);
+    }
+
+    .btn-premium {
+        background: var(--h-bg-premium);
+        color: #ffffff;
+        padding: 1.2rem;
+        border-radius: 16px;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: var(--bg-card);
+        border-radius: 24px;
+        border: 2px dashed var(--border-color);
+    }
+
+    @media (max-width: 1024px) {
+        .habits-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .habits-form-section {
+            order: -1;
+        }
+
+        .habits-header {
+            padding: 2rem;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .card-details {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+</style>
 {% endblock %}
