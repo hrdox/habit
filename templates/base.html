@@ -89,7 +89,13 @@
                         style="padding: 0.5rem;">☰</button>
                     <div>
                         <h2 style="margin:0;">{% block title %}Overview{% endblock %}</h2>
-                        <p class="text-muted" style="margin:0;">{{ now.strftime('%A, %B %d, %Y') }}</p>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <p class="text-muted" style="margin:0;" id="live-system-date">{{ now.strftime('%A, %B %d,
+                                %Y') }}</p>
+                            <span style="color: var(--border-color);">|</span>
+                            <p class="text-muted" style="margin:0; font-weight: 700; color: var(--primary);"
+                                id="live-system-time"></p>
+                        </div>
                     </div>
                 </div>
                 <div>
@@ -99,18 +105,11 @@
 
             {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-            <div style="margin-bottom: 2rem;">
+            <div class="flash-messages-container">
                 {% for category, message in messages %}
-                <div class="card" style="background: {{ 'linear-gradient(135deg, #d1fae5, #ecfdf5)' if category=='success' else 'linear-gradient(135deg, #fee2e2, #fef2f2)' }}; 
-                       color: {{ '#065f46' if category=='success' else '#991b1b' }}; 
-                       padding: 1.25rem 1.5rem; 
-                       border: 1px solid {{ '#a7f3d0' if category=='success' else '#fecaca' }}; 
-                       border-radius: 16px;
-                       box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
-                       display: flex; align-items: center; gap: 1rem;
-                       animation: fadeInDown 0.5s ease;">
-                    <span style="font-size: 1.2rem;">{{ '✨' if category=='success' else '⚠️' }}</span>
-                    <span style="font-weight: 500;">{{ message }}</span>
+                <div class="alert-toast {{ 'alert-success-toast' if category=='success' else 'alert-error-toast' }}">
+                    <span class="toast-icon">{{ '✨' if category=='success' else '⚠️' }}</span>
+                    <span class="toast-message">{{ message }}</span>
                 </div>
                 {% endfor %}
             </div>
@@ -118,6 +117,44 @@
             {% endwith %}
 
             <style>
+                .flash-messages-container {
+                    margin-bottom: 2rem;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.75rem;
+                }
+
+                .alert-toast {
+                    padding: 1.25rem 1.5rem;
+                    border-radius: 16px;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                    animation: fadeInDown 0.5s ease;
+                    border: 1px solid transparent;
+                }
+
+                .alert-success-toast {
+                    background: linear-gradient(135deg, #d1fae5, #ecfdf5);
+                    color: #065f46;
+                    border-color: #a7f3d0;
+                }
+
+                .alert-error-toast {
+                    background: linear-gradient(135deg, #fee2e2, #fef2f2);
+                    color: #991b1b;
+                    border-color: #fecaca;
+                }
+
+                .toast-icon {
+                    font-size: 1.2rem;
+                }
+
+                .toast-message {
+                    font-weight: 500;
+                }
+
                 @keyframes fadeInDown {
                     from {
                         opacity: 0;
@@ -160,6 +197,37 @@
         setInterval(function () {
             fetch('/ping').then(response => console.log("Keep-alive ping sent")).catch(err => console.error("Ping failed"));
         }, 300000); // 5 minutes
+
+        // Live System Clock & Date Sync
+        function updateSystemClock() {
+            const now = new Date();
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+
+            const timeString = now.toLocaleTimeString(undefined, timeOptions);
+            const dateString = now.toLocaleDateString(undefined, dateOptions);
+
+            const timeEl = document.getElementById('live-system-time');
+            const dateEl = document.getElementById('live-system-date');
+
+            if (timeEl) timeEl.innerText = timeString;
+
+            // Check if day changed (at midnight)
+            if (dateEl && dateEl.getAttribute('data-last-date') && dateEl.getAttribute('data-last-date') !== dateString) {
+                // Day changed! Refresh to reset habits/prayers for the new day
+                window.location.reload();
+            }
+
+            if (dateEl) {
+                if (!dateEl.getAttribute('data-last-date')) {
+                    dateEl.setAttribute('data-last-date', dateString);
+                }
+                dateEl.innerText = dateString;
+            }
+        }
+
+        setInterval(updateSystemClock, 1000);
+        updateSystemClock(); // Initial call
     </script>
     {% block scripts %}{% endblock %}
 </body>

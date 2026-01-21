@@ -42,11 +42,37 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+# Helper for Local Time (GMT+6)
+def get_local_now():
+    """Returns the current time in GMT+6 (local time)."""
+    # Using a fixed offset for simple implementation in this context
+    return datetime.utcnow() + timedelta(hours=6)
+
+def get_today():
+    """Returns today's date in GMT+6."""
+    return get_local_now().date()
+
+def ensure_day(user_id, target_date):
+    """
+    Ensures a Day object exists for the given user and date.
+    Returns the Day object.
+    """
+    day = Day.query.filter_by(user_id=user_id, date=target_date).first()
+    if not day:
+        try:
+            day = Day(user_id=user_id, date=target_date)
+            db.session.add(day)
+            db.session.commit()
+        except:
+            db.session.rollback()
+            day = Day.query.filter_by(user_id=user_id, date=target_date).first()
+    return day
+
 # Context Processor for current year/data
 @app.context_processor
 def inject_now():
     return {
-        'now': datetime.utcnow(),
+        'now': get_local_now(),
         'getattr': getattr
     }
 
@@ -409,14 +435,8 @@ def recalculate_day_score(day_id):
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
-    today = date.today()
-    
-    # [NEW] Ensure 'Day' Object Exists
-    current_day = Day.query.filter_by(user_id=current_user.id, date=today).first()
-    if not current_day:
-        current_day = Day(user_id=current_user.id, date=today)
-        db.session.add(current_day)
-        db.session.commit()
+    today = get_today()
+    current_day = ensure_day(current_user.id, today)
         
     # Handle Day Updates (Intention, Energy, Mood)
     if request.method == 'POST':
@@ -445,9 +465,13 @@ def dashboard():
     # Get Prayer status
     prayer_log = PrayerLog.query.filter_by(user_id=current_user.id, date=today).first()
     if not prayer_log:
-        prayer_log = PrayerLog(user_id=current_user.id, date=today, day_id=current_day.id)
-        db.session.add(prayer_log)
-        db.session.commit()
+        try:
+            prayer_log = PrayerLog(user_id=current_user.id, date=today, day_id=current_day.id)
+            db.session.add(prayer_log)
+            db.session.commit()
+        except:
+            db.session.rollback()
+            prayer_log = PrayerLog.query.filter_by(user_id=current_user.id, date=today).first()
     elif prayer_log.day_id is None:
         prayer_log.day_id = current_day.id
         db.session.commit()
@@ -476,6 +500,25 @@ def dashboard():
                            schedule_status=schedule_status,
                            today=today,
                            day=current_day)
+
+@app.route('/api/day/update', methods=['POST'])
+@login_required
+def update_day_api():
+    today = get_today()
+    current_day = ensure_day(current_user.id, today)
+    
+    data = request.json
+    if 'intention' in data:
+        current_day.intention = data.get('intention')
+    if 'energy_level' in data:
+        current_day.energy_level = data.get('energy_level')
+    if 'mood' in data:
+        current_day.mood = data.get('mood')
+    if 'reflection' in data:
+        current_day.reflection = data.get('reflection')
+        
+    db.session.commit()
+    return jsonify({'success': True, 'score': current_day.total_score})
 
 # --- Habit Routes ---
 @app.route('/habits')
@@ -568,13 +611,8 @@ def toggle_habit(habit_id):
     if habit.owner != current_user:
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
         
-    today = date.today()
-    # Ensure Day
-    current_day = Day.query.filter_by(user_id=current_user.id, date=today).first()
-    if not current_day:
-        current_day = Day(user_id=current_user.id, date=today)
-        db.session.add(current_day)
-        db.session.commit()
+    today = get_today()
+    current_day = ensure_day(current_user.id, today)
 
     log = HabitLog.query.filter_by(habit_id=habit.id, date=today).first()
     
@@ -695,13 +733,8 @@ def toggle_routine(id):
     if item.schedule.owner != current_user:
         return jsonify({'success': False, 'error': 'Unauthorized'}), 403
         
-    today = date.today()
-    # Ensure Day
-    current_day = Day.query.filter_by(user_id=current_user.id, date=today).first()
-    if not current_day:
-        current_day = Day(user_id=current_user.id, date=today)
-        db.session.add(current_day)
-        db.session.commit()
+    today = get_today()
+    current_day = ensure_day(current_user.id, today)
 
     log = ScheduleLog.query.filter_by(routine_id=item.id, date=today).first()
     
@@ -772,19 +805,18 @@ def delete_schedule(id):
 @app.route('/prayers', methods=['GET', 'POST'])
 @login_required
 def prayers():
-    today = date.today()
-    # Ensure Day
-    current_day = Day.query.filter_by(user_id=current_user.id, date=today).first()
-    if not current_day:
-        current_day = Day(user_id=current_user.id, date=today)
-        db.session.add(current_day)
-        db.session.commit()
+    today = get_today()
+    current_day = ensure_day(current_user.id, today)
 
     log = PrayerLog.query.filter_by(user_id=current_user.id, date=today).first()
     if not log:
-        log = PrayerLog(user_id=current_user.id, date=today, day_id=current_day.id)
-        db.session.add(log)
-        db.session.commit()
+        try:
+            log = PrayerLog(user_id=current_user.id, date=today, day_id=current_day.id)
+            db.session.add(log)
+            db.session.commit()
+        except:
+            db.session.rollback()
+            log = PrayerLog.query.filter_by(user_id=current_user.id, date=today).first()
     elif log.day_id is None:
         log.day_id = current_day.id
         db.session.commit()
@@ -1248,7 +1280,7 @@ def analytics_view():
 @login_required
 def analytics_data():
     days = request.args.get('days', 30, type=int)
-    end_date = datetime.now().date()
+    end_date = get_today()
     start_date = end_date - timedelta(days=days-1)
     
     # 1. Initialize data structure

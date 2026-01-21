@@ -245,3 +245,38 @@ function animateValue(obj, start, end, duration) {
     };
     window.requestAnimationFrame(step);
 }
+
+// Day Overview AJAX Update
+window.updateDayField = async function (field, value) {
+    const statusEl = document.getElementById('save-status');
+    if (statusEl) {
+        statusEl.textContent = 'Saving...';
+        statusEl.style.opacity = '1';
+        statusEl.style.color = 'var(--text-muted)';
+    }
+
+    try {
+        const res = await fetch('/api/day/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [field]: value })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            if (statusEl) {
+                statusEl.textContent = 'Saved';
+                statusEl.style.color = 'var(--success)';
+                setTimeout(() => {
+                    statusEl.style.opacity = '0';
+                }, 2000);
+            }
+        }
+    } catch (e) {
+        console.error(e);
+        if (statusEl) {
+            statusEl.textContent = 'Error';
+            statusEl.style.color = 'var(--danger)';
+        }
+    }
+};

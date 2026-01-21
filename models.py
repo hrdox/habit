@@ -59,6 +59,8 @@ class HabitLog(db.Model):
     habit_id = db.Column(db.Integer, db.ForeignKey('habit.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)
     status = db.Column(db.Boolean, default=False)
+
+    __table_args__ = (db.UniqueConstraint('habit_id', 'date', name='uq_habit_date'),)
     value_done = db.Column(db.Integer, default=0) # renaming value_current conceptually or aliasing
     quality = db.Column(db.Integer, default=2) # 1-3 (Poor, Avg, Good)
     points = db.Column(db.Integer, default=0) # Calculated points for this specific log
@@ -106,6 +108,8 @@ class PrayerLog(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     day_id = db.Column(db.Integer, db.ForeignKey('day.id'), nullable=True)
     date = db.Column(db.Date, nullable=False)
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'date', name='uq_user_prayer_date'),)
     fajr = db.Column(db.Boolean, default=False)
     dhuhr = db.Column(db.Boolean, default=False)
     asr = db.Column(db.Boolean, default=False)
@@ -128,6 +132,8 @@ class Day(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     date = db.Column(db.Date, nullable=False)
+
+    __table_args__ = (db.UniqueConstraint('user_id', 'date', name='uq_user_day_date'),)
     intention = db.Column(db.String(255), nullable=True)
     energy_level = db.Column(db.Integer, default=3) # 1-5
     mood = db.Column(db.Integer, default=3) # 1-5
