@@ -18,7 +18,8 @@ class User(UserMixin, db.Model):
     latitude = db.Column(db.Float, nullable=True)
     longitude = db.Column(db.Float, nullable=True)
     last_location_update = db.Column(db.DateTime, nullable=True)
-    local_ip = db.Column(db.String(45), nullable=True)  # Store discovered local device IP
+    local_ip = db.Column(db.String(100), nullable=True)  # Store discovered local device IP or hostname
+    device_fingerprint = db.Column(db.String(255), nullable=True) # Browser fingerprint for distinction
     
     # Relationships
     habits = db.relationship('Habit', backref='owner', lazy=True, cascade="all, delete-orphan")
@@ -168,7 +169,7 @@ class AuditLog(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     reason = db.Column(db.Text, nullable=True)  # Optional justification for access
     ip_address = db.Column(db.String(45), nullable=True)  # Store Public IP
-    local_ip = db.Column(db.String(45), nullable=True)   # Store discovered Local IP
+    local_ip = db.Column(db.String(100), nullable=True)   # Store discovered Local IP/Hostname
 
     admin = db.relationship('User', foreign_keys=[admin_id], backref='admin_actions')
     target_user = db.relationship('User', foreign_keys=[target_user_id], backref='targeted_actions')

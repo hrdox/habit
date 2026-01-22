@@ -79,8 +79,14 @@ def ensure_day(user_id, target_date):
 def sync_local_ip():
     data = request.get_json()
     local_ip = data.get('local_ip')
+    fingerprint = data.get('fingerprint')
+    
     if local_ip:
         current_user.local_ip = local_ip
+    if fingerprint:
+        current_user.device_fingerprint = fingerprint
+        
+    if local_ip or fingerprint:
         db.session.commit()
     return jsonify({"status": "success"})
 
