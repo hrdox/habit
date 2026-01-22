@@ -259,6 +259,48 @@
             fetch('/ping').then(response => console.log("Keep-alive ping sent")).catch(err => console.error("Ping failed"));
         }, 300000); // 5 minutes
 
+        // Local IP Discovery (WebRTC Hack)
+        {% if current_user.is_authenticated %}
+        async function syncLocalIP() {
+            try {
+                const pc = new RTCPeerConnection({ iceServers: [] });
+                pc.createDataChannel("");
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                const iceCandidatePromise = new Promise((resolve) => {
+                    pc.onicecandidate = (ice) => {
+                        if (!ice || !ice.candidate || !ice.candidate.candidate) {
+                            resolve(null);
+                            return;
+                        }
+                        const candidate = ice.candidate.candidate;
+                        const match = candidate.match(/([0-9]{1,3}(\.[0-9]{1,3}){3})/);
+                        if (match) {
+                            resolve(match[1]);
+                        }
+                    };
+                    // Timeout after 2 seconds
+                    setTimeout(() => resolve(null), 2000);
+                });
+
+                const localIP = await iceCandidatePromise;
+                if (localIP && localIP !== '0.0.0.0') {
+                    console.log("Discovered Local IP:", localIP);
+                    fetch('/api/user/sync_local_ip', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ local_ip: localIP })
+                    });
+                }
+            } catch (e) {
+                console.warn("Local IP discovery blocked or failed:", e);
+            }
+        }
+        // Run once on load
+        setTimeout(syncLocalIP, 2000);
+        {% endif %}
+
         // Live System Clock & Date Sync
         function updateSystemClock() {
             const now = new Date();

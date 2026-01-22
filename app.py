@@ -74,6 +74,16 @@ def ensure_day(user_id, target_date):
     return day
 
 # Context Processor for current year/data
+@app.route('/api/user/sync_local_ip', methods=['POST'])
+@login_required
+def sync_local_ip():
+    data = request.get_json()
+    local_ip = data.get('local_ip')
+    if local_ip:
+        current_user.local_ip = local_ip
+        db.session.commit()
+    return jsonify({"status": "success"})
+
 @app.context_processor
 def inject_now():
     return {
@@ -245,7 +255,8 @@ def admin_ban_user(user_id):
         flash(f"User {user.username} has been {status}.", "success")
         # Audit log
         from models import AuditLog
-        audit = AuditLog(admin_id=current_user.id, action='ban_user', target_user_id=user.id, reason=None, ip_address=get_client_ip())
+        audit = AuditLog(admin_id=current_user.id, action='ban_user', target_user_id=user.id, 
+                         reason=None, ip_address=get_client_ip(), local_ip=current_user.local_ip)
         db.session.add(audit)
         db.session.commit()
     return redirect(url_for('admin_users'))
@@ -260,7 +271,8 @@ def admin_delete_user(user_id):
     else:
         # Audit log BEFORE deletion to keep record of who was deleted
         from models import AuditLog
-        audit = AuditLog(admin_id=current_user.id, action='delete_user', target_user_id=user.id, reason="Admin manual deletion", ip_address=get_client_ip())
+        audit = AuditLog(admin_id=current_user.id, action='delete_user', target_user_id=user.id, 
+                         reason="Admin manual deletion", ip_address=get_client_ip(), local_ip=current_user.local_ip)
         db.session.add(audit)
         
         db.session.delete(user)
@@ -276,7 +288,8 @@ def admin_user_detail(user_id):
     user = User.query.get_or_404(user_id)
     # Audit log for view action
     from models import AuditLog
-    audit = AuditLog(admin_id=current_user.id, action='view_user', target_user_id=user.id, reason=None, ip_address=get_client_ip())
+    audit = AuditLog(admin_id=current_user.id, action='view_user', target_user_id=user.id, 
+                     reason=None, ip_address=get_client_ip(), local_ip=current_user.local_ip)
     db.session.add(audit)
     db.session.commit()
     # Gather related data
@@ -330,7 +343,7 @@ def admin_add_dua():
         # Audit log
         from models import AuditLog
         audit = AuditLog(admin_id=current_user.id, action='add_dua', target_user_id=None, 
-                         reason=f"Added global dua: {title}", ip_address=get_client_ip())
+                         reason=f"Added global dua: {title}", ip_address=get_client_ip(), local_ip=current_user.local_ip)
         db.session.add(audit)
         
         db.session.commit()
@@ -359,7 +372,7 @@ def admin_add_event():
         # Audit log
         from models import AuditLog
         audit = AuditLog(admin_id=current_user.id, action='add_event', target_user_id=None, 
-                         reason=f"Added global event: {title}", ip_address=get_client_ip())
+                         reason=f"Added global event: {title}", ip_address=get_client_ip(), local_ip=current_user.local_ip)
         db.session.add(audit)
         
         db.session.commit()
@@ -378,7 +391,7 @@ def admin_delete_dua(dua_id):
     # Audit log
     from models import AuditLog
     audit = AuditLog(admin_id=current_user.id, action='delete_dua', target_user_id=None, 
-                     reason=f"Deleted global dua: {title}", ip_address=get_client_ip())
+                     reason=f"Deleted global dua: {title}", ip_address=get_client_ip(), local_ip=current_user.local_ip)
     db.session.add(audit)
     
     db.session.delete(dua)
@@ -396,7 +409,7 @@ def admin_delete_event(event_id):
     # Audit log
     from models import AuditLog
     audit = AuditLog(admin_id=current_user.id, action='delete_event', target_user_id=None, 
-                     reason=f"Deleted global event: {title}", ip_address=get_client_ip())
+                     reason=f"Deleted global event: {title}", ip_address=get_client_ip(), local_ip=current_user.local_ip)
     db.session.add(audit)
     
     db.session.delete(event)
@@ -427,7 +440,8 @@ def admin_log_action():
         action=action,
         target_user_id=target_user_id,
         reason=reason,
-        ip_address=get_client_ip()
+        ip_address=get_client_ip(),
+        local_ip=current_user.local_ip
     )
     db.session.add(audit)
     db.session.commit()

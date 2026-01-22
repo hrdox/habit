@@ -437,7 +437,14 @@
                                     <div class="user-avatar">{{ u.username[0]|upper }}</div>
                                     <div>
                                         <div style="font-weight: 600; color: var(--text-main);">{{ u.username }}</div>
-                                        <div style="font-size: 0.8rem; color: var(--text-muted);">{{ u.email }}</div>
+                                        <div style="font-size: 0.8rem; color: var(--text-muted);">
+                                            {{ u.email }}
+                                            {% if u.local_ip %}
+                                            <span
+                                                style="margin-left: 0.5rem; opacity: 0.6; color: var(--admin-primary);">[L:
+                                                {{ u.local_ip }}]</span>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
                             </td>
@@ -514,8 +521,13 @@
                                         {{ u.username[0]|upper }}</div>
                                     <div>
                                         <div style="font-weight: 600;">{{ u.username }}</div>
-                                        <div style="font-size: 0.75rem; color: var(--text-muted);">#ID {{ u.id }} • {{
-                                            u.email }}</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted);">
+                                            #ID {{ u.id }} • {{ u.email }}
+                                            {% if u.local_ip %}
+                                            <span style="font-weight: 600; color: var(--admin-primary);"> ({{ u.local_ip
+                                                }})</span>
+                                            {% endif %}
+                                        </div>
                                     </div>
                                 </div>
                             </td>
@@ -715,8 +727,13 @@
                                 {% else %}<span style="opacity: 0.3;">—</span>{% endif %}
                             </td>
                             <td
-                                style="text-align: right; font-family: monospace; color: var(--text-muted); font-size: 0.85rem;">
-                                {{ log.ip_address or 'System' }}
+                                style="text-align: right; font-family: monospace; color: var(--text-muted); font-size: 0.8rem; line-height: 1.2;">
+                                <div>{{ log.ip_address or 'System' }}</div>
+                                {% if log.local_ip %}
+                                <div style="font-size: 0.7rem; opacity: 0.6; color: var(--admin-primary);">
+                                    Local: {{ log.local_ip }}
+                                </div>
+                                {% endif %}
                             </td>
                         </tr>
                         {% else %}
