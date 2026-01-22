@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Calendar Event - Admin Center{% endblock %}
+
+{% block content %}
+<div class="admin-container" style="max-width: 800px; margin: 0 auto; padding: 2rem 1rem;">
+    <div style="margin-bottom: 2rem; display: flex; align-items: center; justify-content: space-between;">
+        <a href="{{ url_for('admin_events') }}" class="btn btn-outline"
+            style="text-decoration: none; display: flex; align-items: center; gap: 0.5rem;">
+            <span>⬅️</span> Back to Events
+        </a>
+        <div class="badge badge-user" style="padding: 0.5rem 1rem;">CALENDAR MANAGEMENT</div>
+    </div>
+
+    <div class="card"
+        style="padding: 2.5rem; border-radius: 28px; border: 1px solid var(--admin-border); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);">
+        <div style="margin-bottom: 2.5rem; text-align: center;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🗓️</div>
+            <h2 style="margin: 0; font-size: 1.8rem;">Create System Event</h2>
+            <p style="color: var(--text-muted); margin-top: 0.5rem;">Add significant Islamic dates or system events to
+                the global calendar.</p>
+        </div>
+
+        <form action="{{ url_for('admin_add_event') }}" method="POST">
+            <div style="margin-bottom: 1.5rem;">
+                <label
+                    style="display: block; font-size: 0.85rem; margin-bottom: 0.6rem; font-weight: 600; color: var(--text-muted);">Event
+                    Name</label>
+                <input type="text" name="title" required class="input-premium" style="width: 100%; border-radius: 14px;"
+                    placeholder="e.g. Start of Ramadan">
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2.5rem;">
+                <div>
+                    <label
+                        style="display: block; font-size: 0.85rem; margin-bottom: 0.6rem; font-weight: 600; color: var(--text-muted);">Event
+                        Date</label>
+                    <input type="date" name="date" required class="input-premium"
+                        style="width: 100%; border-radius: 14px;">
+                </div>
+                <div>
+                    <label
+                        style="display: block; font-size: 0.85rem; margin-bottom: 0.6rem; font-weight: 600; color: var(--text-muted);">Theme
+                        Color</label>
+                    <div style="display: flex; gap: 1rem; align-items: center; height: 50px;">
+                        <input type="color" name="color" value="#6366f1"
+                            style="width: 60px; height: 100%; border: none; padding: 0; background: transparent; cursor: pointer; border-radius: 8px;">
+                        <span style="font-size: 0.85rem; color: var(--text-muted);">Click to pick a color for the
+                            calendar badge.</span>
+                    </div>
+                </div>
+            </div>
+
+            <div
+                style="background: var(--admin-bg-soft); padding: 1.5rem; border-radius: 18px; margin-bottom: 2.5rem; border: 1px dashed var(--admin-border);">
+                <p
+                    style="margin: 0; font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.75rem;">
+                    <span>📍</span>
+                    This event will appear on the <b>Calendar View</b> for all users. The color chosen will be used as
+                    the background for the event title.
+                </p>
+            </div>
+
+            <button type="submit" class="btn btn-primary"
+                style="width: 100%; padding: 1.25rem; border-radius: 16px; font-weight: 700; font-size: 1.1rem; background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary)); border: none; box-shadow: 0 12px 20px -5px rgba(99, 102, 241, 0.4);">
+                ✅ Add to System Calendar
+            </button>
+        </form>
+    </div>
+</div>
+
+<style>
+    :root {
+        --admin-primary: #6366f1;
+        --admin-secondary: #a855f7;
+        --admin-border: rgba(99, 102, 241, 0.1);
+        --admin-bg-soft: rgba(99, 102, 241, 0.03);
+    }
+
+    .input-premium:focus {
+        border-color: var(--admin-primary);
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+    }
+</style>
+{% endblock %}

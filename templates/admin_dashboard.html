@@ -570,11 +570,10 @@
                 <p style="margin: 0.5rem 0 0 0; color: var(--text-muted); font-size: 0.9rem;">Management of universal
                     duas provided to all platform users.</p>
             </div>
-            <button class="btn btn-primary"
-                style="padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;"
-                onclick="openModal('addDuaModal')">
+            <a href="{{ url_for('admin_add_dua') }}" class="btn btn-primary"
+                style="padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; text-decoration: none;">
                 <span style="font-size: 1.2rem;">+</span> Add Global Dua
-            </button>
+            </a>
         </div>
 
         <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 1.5rem;">
@@ -606,49 +605,7 @@
             {% endfor %}
         </div>
 
-        <!-- Add Dua Modal -->
-        <div id="addDuaModal" class="modal-overlay">
-            <div class="modal-content">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 2rem; align-items: center;">
-                    <h3 style="margin: 0;">Publish New Dua</h3>
-                    <button onclick="closeModal('addDuaModal')" class="action-btn"
-                        style="border: none; font-size: 1.2rem;">&times;</button>
-                </div>
-                <form action="{{ url_for('admin_add_dua') }}" method="POST">
-                    <div style="margin-bottom: 1.25rem;">
-                        <label
-                            style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-muted);">Title</label>
-                        <input type="text" name="title" required class="input-premium" style="width: 100%;"
-                            placeholder="e.g. Dua for Hardship">
-                    </div>
-                    <div style="margin-bottom: 1.25rem;">
-                        <label
-                            style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-muted);">Category</label>
-                        <input type="text" name="category" placeholder="e.g. Daily, Travel, Protection" required
-                            class="input-premium" style="width: 100%;">
-                    </div>
-                    <div style="margin-bottom: 1.25rem;">
-                        <label
-                            style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-muted);">Arabic
-                            Text</label>
-                        <textarea name="arabic_text" required rows="4" class="input-premium"
-                            style="width: 100%; font-family: 'Amiri', serif; font-size: 1.2rem; direction: rtl;"
-                            placeholder="اللهم..."></textarea>
-                    </div>
-                    <div style="margin-bottom: 2rem;">
-                        <label
-                            style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-muted);">English
-                            Meaning (Optional)</label>
-                        <textarea name="english_meaning" rows="3" class="input-premium" style="width: 100%;"
-                            placeholder="Translation of the dua..."></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary"
-                        style="width: 100%; padding: 1rem; border-radius: 14px; font-weight: 700; background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary)); border: none; box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4);">
-                        Publish to Global Repository
-                    </button>
-                </form>
-            </div>
-        </div>
+        <!-- Modals removed, now using dedicated pages -->
         {% endif %}
 
         {% if active_tab == 'content_events' %}
@@ -658,8 +615,9 @@
                 <p style="margin: 0.5rem 0 0 0; color: var(--text-muted); font-size: 0.9rem;">Universal events that
                     synchronize with every user's personal calendar.</p>
             </div>
-            <button class="btn btn-primary" style="padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600;"
-                onclick="openModal('addEventModal')">+ New Event</button>
+            <a href="{{ url_for('admin_add_event') }}" class="btn btn-primary"
+                style="padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; text-decoration: none;">+ New
+                Event</a>
         </div>
 
         <div class="card" style="padding: 1rem; border-radius: 20px;">
@@ -704,46 +662,7 @@
             </table>
         </div>
 
-        <!-- Add Event Modal -->
-        <div id="addEventModal" class="modal-overlay">
-            <div class="modal-content">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 2rem; align-items: center;">
-                    <h3 style="margin: 0;">Create Calendar Event</h3>
-                    <button onclick="closeModal('addEventModal')" class="action-btn"
-                        style="border: none; font-size: 1.2rem;">&times;</button>
-                </div>
-                <form action="{{ url_for('admin_add_event') }}" method="POST">
-                    <div style="margin-bottom: 1.25rem;">
-                        <label
-                            style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-muted);">Event
-                            Name</label>
-                        <input type="text" name="title" required class="input-premium" style="width: 100%;"
-                            placeholder="e.g. Start of Ramadan">
-                    </div>
-                    <div style="margin-bottom: 1.25rem;">
-                        <label
-                            style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-muted);">Event
-                            Date</label>
-                        <input type="date" name="date" required class="input-premium" style="width: 100%;">
-                    </div>
-                    <div style="margin-bottom: 2rem;">
-                        <label
-                            style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-muted);">Theme
-                            Color</label>
-                        <div style="display: flex; gap: 1rem; align-items: center;">
-                            <input type="color" name="color" value="#6366f1"
-                                style="width: 60px; height: 45px; border: none; padding: 0; background: transparent; cursor: pointer; border-radius: 8px;">
-                            <span style="font-size: 0.85rem; color: var(--text-muted);">This color will represent the
-                                event on the calendar.</span>
-                        </div>
-                    </div>
-                    <button type="submit" class="btn btn-primary"
-                        style="width: 100%; padding: 1rem; border-radius: 14px; font-weight: 700; background: linear-gradient(135deg, var(--admin-primary), var(--admin-secondary)); border: none;">
-                        Add to System Calendar
-                    </button>
-                </form>
-            </div>
-        </div>
+        <!-- Event modal removed, now using dedicated page -->
         {% endif %}
 
         {% if active_tab == 'system_logs' %}
@@ -817,19 +736,5 @@
     </div>
 </div>
 
-<script>
-    function openModal(id) {
-        document.getElementById(id).style.display = 'flex';
-        document.body.style.overflow = 'hidden'; // Prevent scroll
-    }
-    function closeModal(id) {
-        document.getElementById(id).style.display = 'none';
-        document.body.style.overflow = 'auto';
-    }
-    window.onclick = function (event) {
-        if (event.target.classList.contains('modal-overlay')) {
-            closeModal(event.target.id);
-        }
-    }
 </script>
 {% endblock %}

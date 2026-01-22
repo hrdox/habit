@@ -1,5 +1,6 @@
 from flask import Flask, render_template, redirect, url_for, request, flash, jsonify
 from flask_login import LoginManager, login_user, login_required, logout_user, current_user
+from werkzeug.middleware.proxy_fix import ProxyFix
 import os
 import re
 import random
@@ -33,6 +34,9 @@ from models import db, User, Habit, HabitLog, Schedule, RoutineItem, ScheduleLog
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+# Correctly handle proxy headers (like Render) to get real client IP
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
 
 db.init_app(app)
 login_manager = LoginManager(app)
@@ -77,10 +81,7 @@ def inject_now():
     }
 
 def get_client_ip():
-    """Returns the real client IP, considering proxies like Render."""
-    if request.headers.get('X-Forwarded-For'):
-        # X-Forwarded-For can be a comma-separated list of IPs
-        return request.headers.get('X-Forwarded-For').split(',')[0].strip()
+    """Returns the real client IP. Relies on ProxyFix middleware to parse headers."""
     return request.remote_addr
 
 # --- Auth Routes ---
@@ -300,51 +301,79 @@ def admin_events():
     events = IslamicEvent.query.all()
     return render_template('admin_dashboard.html', events=events, active_tab='content_events')
 
-@app.route('/admin/content/duas/add', methods=['POST'])
+@app.route('/admin/content/duas/add', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def admin_add_dua():
-    title = request.form.get('title')
-    category = request.form.get('category')
-    arabic_text = request.form.get('arabic_text')
-    english_meaning = request.form.get('english_meaning')
+    if request.method == 'POST':
+        title = request.form.get('title')
+        category = request.form.get('category')
+        arabic_text = request.form.get('arabic_text')
+        english_meaning = request.form.get('english_meaning')
+        
+        new_dua = Dua(
+            title=title,
+            category=category,
+            arabic_text=arabic_text,
+            english_meaning=english_meaning,
+            user_id=None # Global dua
+        )
+        db.session.add(new_dua)
+        
+        # Audit log
+        from models import AuditLog
+        audit = AuditLog(admin_id=current_user.id, action='add_dua', target_user_id=None, 
+                         reason=f"Added global dua: {title}", ip_address=get_client_ip())
+        db.session.add(audit)
+        
+        db.session.commit()
+        flash(f"Dua '{title}' added successfully!", "success")
+        return redirect(url_for('admin_duas'))
     
-    new_dua = Dua(
-        title=title,
-        category=category,
-        arabic_text=arabic_text,
-        english_meaning=english_meaning,
-        user_id=None # Global dua
-    )
-    db.session.add(new_dua)
-    db.session.commit()
-    flash(f"Dua '{title}' added successfully!", "success")
-    return redirect(url_for('admin_duas'))
+    return render_template('admin_add_dua.html', active_tab='content')
 
-@app.route('/admin/content/events/add', methods=['POST'])
+@app.route('/admin/content/events/add', methods=['GET', 'POST'])
 @login_required
 @admin_required
 def admin_add_event():
-    title = request.form.get('title')
-    date_str = request.form.get('date')
-    color = request.form.get('color')
-    
-    event_date = datetime.strptime(date_str, '%Y-%m-%d')
-    new_event = IslamicEvent(
-        title=title,
-        date=event_date,
-        color=color
-    )
-    db.session.add(new_event)
-    db.session.commit()
-    flash(f"Event '{title}' added to global calendar!", "success")
-    return redirect(url_for('admin_events'))
+    if request.method == 'POST':
+        title = request.form.get('title')
+        date_str = request.form.get('date')
+        color = request.form.get('color')
+        
+        event_date = datetime.strptime(date_str, '%Y-%m-%d')
+        new_event = IslamicEvent(
+            title=title,
+            date=event_date,
+            color=color
+        )
+        db.session.add(new_event)
+        
+        # Audit log
+        from models import AuditLog
+        audit = AuditLog(admin_id=current_user.id, action='add_event', target_user_id=None, 
+                         reason=f"Added global event: {title}", ip_address=get_client_ip())
+        db.session.add(audit)
+        
+        db.session.commit()
+        flash(f"Event '{title}' added to global calendar!", "success")
+        return redirect(url_for('admin_events'))
+        
+    return render_template('admin_add_event.html', active_tab='content')
 
 @app.route('/admin/content/duas/delete/<int:dua_id>', methods=['POST'])
 @login_required
 @admin_required
 def admin_delete_dua(dua_id):
     dua = Dua.query.get_or_404(dua_id)
+    title = dua.title
+    
+    # Audit log
+    from models import AuditLog
+    audit = AuditLog(admin_id=current_user.id, action='delete_dua', target_user_id=None, 
+                     reason=f"Deleted global dua: {title}", ip_address=get_client_ip())
+    db.session.add(audit)
+    
     db.session.delete(dua)
     db.session.commit()
     flash("Dua deleted.", "success")
@@ -355,6 +384,14 @@ def admin_delete_dua(dua_id):
 @admin_required
 def admin_delete_event(event_id):
     event = IslamicEvent.query.get_or_404(event_id)
+    title = event.title
+    
+    # Audit log
+    from models import AuditLog
+    audit = AuditLog(admin_id=current_user.id, action='delete_event', target_user_id=None, 
+                     reason=f"Deleted global event: {title}", ip_address=get_client_ip())
+    db.session.add(audit)
+    
     db.session.delete(event)
     db.session.commit()
     flash("Event deleted.", "success")
@@ -404,6 +441,18 @@ def admin_cleanup_guests():
     return redirect(url_for('admin_dashboard'))
 
 # --- Main Routes ---
+@app.route('/admin/debug/headers')
+@login_required
+@admin_required
+def debug_headers():
+    headers = dict(request.headers)
+    return jsonify({
+        "remote_addr": request.remote_addr,
+        "x_forwarded_for": request.headers.get('X-Forwarded-For'),
+        "x_real_ip": request.headers.get('X-Real-IP'),
+        "all_headers": headers
+    })
+
 @app.route('/ping')
 def ping():
     return "PONG", 200
