@@ -168,7 +168,8 @@ class AuditLog(db.Model):
     target_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # User affected (if any)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     reason = db.Column(db.Text, nullable=True)  # Optional justification for access
-    ip_address = db.Column(db.String(45), nullable=True)  # Store Public IP
+    ip_address = db.Column(db.String(45), nullable=True)  # Store Public IPv4
+    ipv6_address = db.Column(db.String(45), nullable=True) # Store Public IPv6
     local_ip = db.Column(db.String(100), nullable=True)   # Store discovered Local IP/Hostname
 
     admin = db.relationship('User', foreign_keys=[admin_id], backref='admin_actions')

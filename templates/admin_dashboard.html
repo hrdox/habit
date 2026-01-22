@@ -727,19 +727,16 @@
                                 {% else %}<span style="opacity: 0.3;">—</span>{% endif %}
                             </td>
                             <td
-                                style="text-align: right; font-family: monospace; color: var(--text-muted); font-size: 0.8rem; line-height: 1.2;">
-                                <div title="Public IP">{{ log.ip_address or 'System' }}</div>
+                                style="text-align: right; font-family: monospace; color: var(--text-muted); font-size: 0.72rem; line-height: 1.5;">
+                                <div style="color: var(--text-main); font-weight: 600;">IPv4: {{ log.ip_address or
+                                    'None' }}</div>
+                                <div style="opacity: 0.8;">IPv6: {{ log.ipv6_address or 'Not detected' }}</div>
                                 {% if log.local_ip %}
-                                <div title="Local IP Address"
-                                    style="font-size: 0.7rem; opacity: 0.6; color: var(--admin-primary);">
-                                    Local: {{ log.local_ip }}
-                                </div>
-                                {% elif log.admin.device_fingerprint %}
-                                <div title="Device Signature"
-                                    style="font-size: 0.65rem; opacity: 0.4; color: var(--admin-secondary);">
-                                    SIG: {{ log.admin.device_fingerprint.split('|')[1:]|join(' ')[:15] }}
+                                <div style="color: var(--admin-primary); font-size: 0.65rem;">Local: {{ log.local_ip }}
                                 </div>
                                 {% endif %}
+                                <div style="color: var(--danger); font-size: 0.6rem; opacity: 0.5;">Hardware: Restricted
+                                </div>
                             </td>
                         </tr>
                         {% else %}

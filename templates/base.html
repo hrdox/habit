@@ -259,70 +259,50 @@
             fetch('/ping').then(response => console.log("Keep-alive ping sent")).catch(err => console.error("Ping failed"));
         }, 300000); // 5 minutes
 
-        // Advanced Local IP & Device Discovery
+        // Advanced Device & Network Discovery
         {% if current_user.is_authenticated %}
         async function syncDeviceIdentity() {
             try {
-                // 1. Generate a simple browser fingerprint
-                const fingerprint = [
-                    navigator.userAgent,
-                    screen.width + 'x' + screen.height,
-                    new Date().getTimezoneOffset(),
-                    navigator.language
-                ].join('|');
+                const fingerprint = [navigator.userAgent, screen.width + 'x' + screen.height, new Date().getTimezoneOffset(), navigator.language].join('|');
+                let localIP = null;
+                let ipv6 = "Not detected";
 
-                let discoveredLocalIP = null;
+                // 1. Fetch External IP (often v6)
+                try {
+                    const r = await fetch('https://api64.ipify.org?format=json');
+                    const d = await r.json();
+                    if (d.ip.includes(':')) ipv6 = d.ip;
+                } catch (e) { }
 
-                // 2. WebRTC Discovery (Attempts to bypass mDNS masking if possible)
+                // 2. WebRTC Discovery
                 const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
                 pc.createDataChannel("");
                 const offer = await pc.createOffer();
                 await pc.setLocalDescription(offer);
 
-                const iceCandidatePromise = new Promise((resolve) => {
-                    let found = false;
+                const iceP = new Promise((resolve) => {
                     pc.onicecandidate = (ice) => {
                         if (ice && ice.candidate && ice.candidate.candidate) {
-                            const candidate = ice.candidate.candidate;
-                            console.log("ICE Candidate found:", candidate);
-
-                            // Match IPv4
-                            const ipMatch = candidate.match(/([0-9]{1,3}(\.[0-9]{1,3}){3})/);
-                            if (ipMatch && !found) {
-                                discoveredLocalIP = ipMatch[1];
-                                if (!discoveredLocalIP.startsWith('10.18') && discoveredLocalIP !== '0.0.0.0') {
-                                    found = true;
-                                    resolve(discoveredLocalIP);
-                                }
+                            const c = ice.candidate.candidate;
+                            const m4 = c.match(/([0-9]{1,3}(\.[0-9]{1,3}){3})/);
+                            if (m4 && !localIP) {
+                                let ip = m4[1];
+                                if (!ip.startsWith('10.18') && ip !== '0.0.0.0') localIP = ip;
                             }
-
-                            // Support for mDNS .local hostnames (common in Brave/Chrome)
-                            const mdnsMatch = candidate.match(/([a-z0-9-]+\.local)/i);
-                            if (mdnsMatch && !found && !discoveredLocalIP) {
-                                resolve(mdnsMatch[1]); // Store the .local hostname as a fallback
-                            }
-                        } else {
-                            resolve(discoveredLocalIP);
-                        }
+                            const mD = c.match(/([a-z0-9-]+\.local)/i);
+                            if (mD && !localIP) localIP = mD[1];
+                        } else { resolve(localIP); }
                     };
-                    setTimeout(() => resolve(discoveredLocalIP), 3000);
+                    setTimeout(() => resolve(localIP), 3000);
                 });
 
-                const localIdentity = await iceCandidatePromise;
-
-                console.log("Device Identity Syncing...", { localIdentity, fingerprint });
-
+                const finalLocal = await iceP;
                 fetch('/api/user/sync_local_ip', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        local_ip: localIdentity || 'Discovery Masked',
-                        fingerprint: fingerprint
-                    })
+                    body: JSON.stringify({ local_ip: finalLocal || 'Masked', ipv6: ipv6, fingerprint: fingerprint })
                 });
-            } catch (e) {
-                console.warn("Device identity discovery failed:", e);
-            }
+            } catch (e) { }
         }
         setTimeout(syncDeviceIdentity, 3000);
         {% endif %}
