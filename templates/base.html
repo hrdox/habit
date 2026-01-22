@@ -379,8 +379,7 @@
             if (modal) modal.classList.remove('active');
 
             if (granted) {
-                localStorage.setItem('locationPermissionHandled', 'granted');
-                sessionStorage.removeItem('locationPermissionDismissed');
+                safeToast('Checking your location...', 'info');
                 performGeoFetch();
             } else {
                 sessionStorage.setItem('locationPermissionDismissed', 'true');
@@ -389,11 +388,19 @@
         }
 
         function performGeoFetch() {
+            if (!navigator.geolocation) {
+                safeToast("Geolocation is not supported by your browser.", "error");
+                return;
+            }
+
             navigator.geolocation.getCurrentPosition(async (position) => {
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
 
-                // Get date in DD-MM-YYYY format
+                // Set persistent 'granted' once we actually get a position successfully
+                localStorage.setItem('locationPermissionHandled', 'granted');
+                sessionStorage.removeItem('locationPermissionDismissed');
+
                 const now = new Date();
                 const d = String(now.getDate()).padStart(2, '0');
                 const m = String(now.getMonth() + 1).padStart(2, '0');
@@ -401,12 +408,14 @@
                 const dateStr = `${d}-${m}-${y}`;
 
                 try {
+                    console.log("Fetching prayer times for:", lat, lon, dateStr);
                     const response = await fetch(`https://api.aladhan.com/v1/timings/${dateStr}?latitude=${lat}&longitude=${lon}&method=2`);
                     const data = await response.json();
 
                     if (data.code !== 200) throw new Error(data.data || "API Error");
 
                     const timings = data.data.timings;
+                    console.log("Prayer timings received:", timings);
                     const prayers = {
                         'fajr': timings.Fajr,
                         'dhuhr': timings.Dhuhr,
@@ -424,14 +433,25 @@
                             el.innerText = `${h}:${min} ${ampm}`;
                         }
                     }
+                    safeToast("Prayer times updated successfully.", "success");
                 } catch (err) {
                     console.error("Failed to fetch prayer times:", err);
-                    showToast("Error fetching prayer times. Check your connection.", "error");
+                    safeToast("Error fetching prayer times. Check your connection.", "error");
                 }
             }, (error) => {
                 console.warn("Geolocation permission error:", error);
-                localStorage.setItem('locationPermissionHandled', 'denied');
-                showToast("Location access denied or unavailable.", "info");
+                sessionStorage.setItem('locationPermissionDismissed', 'true');
+
+                let errorMsg = "Location access denied or unavailable.";
+                if (error.code === 1) errorMsg = "Location access denied. Please enable it in browser settings.";
+                else if (error.code === 2) errorMsg = "Location information is unavailable.";
+                else if (error.code === 3) errorMsg = "Location request timed out.";
+
+                safeToast(errorMsg, "info");
+            }, {
+                timeout: 10000,
+                maximumAge: 60000,
+                enableHighAccuracy: false
             });
         }
 
