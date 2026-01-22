@@ -339,6 +339,32 @@ textarea:focus {
     border-color: var(--secondary);
 }
 
+.prayer-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.prayer-name {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+.prayer-time {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-left: 1.75rem;
+    /* Precise alignment with name text after icon */
+}
+
+.prayer-status-text {
+    font-size: 0.85rem;
+    color: var(--secondary);
+    font-weight: 700;
+}
+
 .check-icon {
     width: 20px;
     height: 20px;

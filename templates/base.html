@@ -287,6 +287,49 @@
             if (modalDate) modalDate.innerText = `${monthName} ${dayNum}, ${year}`;
         }
 
+        // Prayer Times Logic
+        async function fetchPrayerTimes() {
+            if (!navigator.geolocation) {
+                console.log("Geolocation not supported");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                const date = new Date().toISOString().split('T')[0];
+
+                try {
+                    const response = await fetch(`https://api.aladhan.com/v1/timings/${date}?latitude=${lat}&longitude=${lon}&method=2`);
+                    const data = await response.json();
+                    const timings = data.data.timings;
+
+                    const prayers = {
+                        'fajr': timings.Fajr,
+                        'dhuhr': timings.Dhuhr,
+                        'asr': timings.Asr,
+                        'maghrib': timings.Maghrib,
+                        'isha': timings.Isha
+                    };
+
+                    for (const [id, time] of Object.entries(prayers)) {
+                        const el = document.getElementById(`time-${id}`);
+                        if (el) {
+                            // Convert 24h to 12h format
+                            let [h, m] = time.split(':');
+                            const ampm = h >= 12 ? 'PM' : 'AM';
+                            h = h % 12 || 12;
+                            el.innerText = `${h}:${m} ${ampm}`;
+                        }
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch prayer times:", err);
+                }
+            }, (error) => {
+                console.warn("Geolocation permission denied or error:", error);
+            });
+        }
+
         // Toggle Analog Clock Modal (Mobile)
         function toggleAnalogModal() {
             const modal = document.getElementById('analog-clock-modal');
@@ -297,6 +340,7 @@
 
         setInterval(updateSystemClock, 1000);
         updateSystemClock(); // Initial call
+        fetchPrayerTimes(); // Fetch prayer times once per session
     </script>
 
     <!-- Analog Clock Modal (Mobile Overlay) -->

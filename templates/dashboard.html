@@ -108,12 +108,15 @@
                 {% for p in ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'] %}
                 <div class="prayer-item {{ 'completed' if prayer_log and getattr(prayer_log, p) else '' }}"
                     onclick="togglePrayer('{{ p }}', this)">
-                    <div class="prayer-name">
-                        <span class="check-icon"></span>
-                        {{ p|capitalize }}
+                    <div class="prayer-info">
+                        <div class="prayer-name">
+                            <span class="check-icon"></span>
+                            {{ p|capitalize }}
+                        </div>
+                        <div class="prayer-time" id="time-{{ p }}">--:--</div>
                     </div>
                     {% if prayer_log and getattr(prayer_log, p) %}
-                    <span style="font-size: 0.8rem; color: var(--success); font-weight: 500;">Completed</span>
+                    <span class="prayer-status-text">Completed</span>
                     {% endif %}
                 </div>
                 {% endfor %}

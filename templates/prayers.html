@@ -44,7 +44,7 @@
                     </div>
                     <div class="prayer-info">
                         <span class="prayer-label">{{ p|capitalize }}</span>
-                        <span class="prayer-time">{{ times[p] }}</span>
+                        <span class="prayer-time" id="time-{{ p }}">{{ times[p] }}</span>
                     </div>
                     <div class="prayer-status-indicator">
                         {% if getattr(log, p) %}
