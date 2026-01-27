@@ -207,7 +207,7 @@ def super_admin_required(f):
     # Alias for admin_required as we are removing super_admin role
     return admin_required(f)
 
-@app.route('/admin')
+@app.route('/admin/')
 @login_required
 @admin_required
 def admin_dashboard():
@@ -637,6 +637,7 @@ def add_habit():
     priority = request.form.get('priority', 3, type=int)
     difficulty = request.form.get('difficulty', 1, type=int)
     identity_label = request.form.get('identity_label')
+    site_url = request.form.get('site_url')
     
     # Calculate base points based on difficulty and priority
     # Formula: Base = 10 * Difficulty * Priority
@@ -653,6 +654,7 @@ def add_habit():
         priority=priority,
         difficulty=difficulty,
         identity_label=identity_label,
+        site_url=site_url,
         points=int(points)
     )
     db.session.add(new_habit)
@@ -678,6 +680,7 @@ def edit_habit(habit_id):
         habit.min_value = request.form.get('min_value', type=int)
         habit.unit = request.form.get('unit')
         habit.identity_label = request.form.get('identity_label')
+        habit.site_url = request.form.get('site_url')
         
         # Recalculate points
         habit.points = int(10 * habit.difficulty * ((habit.priority + 1) / 2))

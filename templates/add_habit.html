@@ -85,6 +85,15 @@
                         </div>
                     </div>
 
+                    {% if h.site_url %}
+                    <div class="habit-link-section" style="margin-bottom: 1rem;">
+                        <a href="{{ h.site_url }}" target="_blank" class="habit-external-link"
+                            style="color: var(--h-primary); text-decoration: none; font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                            🌐 Visit Habit Site
+                        </a>
+                    </div>
+                    {% endif %}
+
                     <div class="card-actions">
                         <a href="{{ url_for('edit_habit', habit_id=h.id) }}" class="btn-action edit" title="Edit Habit">
                             <span>✏️</span> Edit
@@ -186,6 +195,15 @@
                             <input type="text" name="identity_label" placeholder='"I am a consistent learner"'>
                         </div>
                         <small class="form-help">Focus on who you become, not just what you do.</small>
+                    </div>
+
+                    <div class="form-section">
+                        <label class="form-label">Website Link (Optional)</label>
+                        <div class="input-with-icon">
+                            <span class="input-icon">🔗</span>
+                            <input type="url" name="site_url" placeholder="https://example.com/habit-helper">
+                        </div>
+                        <small class="form-help">Add a link to visit whenever you track this habit.</small>
                     </div>
 
                     <button type="submit" class="btn-premium">

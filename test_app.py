@@ -62,6 +62,41 @@ class HabitTrackerTestCase(unittest.TestCase):
         self.assertTrue(json_data['success'])
         self.assertTrue(json_data['new_status'])
 
+    def test_habit_with_site_url(self):
+        self.login('testuser', 'password')
+        
+        # Add Habit with URL
+        url = "https://www.example.com"
+        rv = self.app.post('/habit/add', data=dict(
+            name='Link Habit',
+            category='Study',
+            frequency='Daily',
+            site_url=url
+        ), follow_redirects=True)
+        self.assertEqual(rv.status_code, 200)
+        
+        habit = Habit.query.filter_by(name='Link Habit').first()
+        self.assertIsNotNone(habit)
+        self.assertEqual(habit.site_url, url)
+        
+        # Test Edit URL
+        new_url = "https://www.google.com"
+        rv = self.app.post(f'/habit/edit/{habit.id}', data=dict(
+            name='Link Habit',
+            category='Study',
+            frequency='Daily',
+            site_url=new_url,
+            priority=habit.priority,
+            difficulty=habit.difficulty,
+            target_value=habit.target_value,
+            min_value=habit.min_value,
+            unit=habit.unit
+        ), follow_redirects=True)
+        self.assertEqual(rv.status_code, 200)
+        
+        db.session.refresh(habit)
+        self.assertEqual(habit.site_url, new_url)
+
     def test_unauthorized_habit_toggle(self):
         # Login as other user
         self.login('other', 'password')

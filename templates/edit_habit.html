@@ -89,6 +89,16 @@
                 <small class="form-help">Who do you become by maintaining this habit?</small>
             </div>
 
+            <div class="form-section">
+                <label class="form-label">Website Link (Optional)</label>
+                <div class="input-with-icon">
+                    <span class="input-icon">🔗</span>
+                    <input type="url" name="site_url" value="{{ habit.site_url or '' }}"
+                        placeholder="https://example.com/habit-helper">
+                </div>
+                <small class="form-help">Link to a site you visit for this habit.</small>
+            </div>
+
             <div class="edit-footer">
                 <a href="{{ url_for('habits_list') }}" class="btn-secondary">Cancel</a>
                 <button type="submit" class="btn-primary-premium">Update Habit Settings</button>
