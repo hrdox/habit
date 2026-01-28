@@ -56,15 +56,48 @@ self.addEventListener('fetch', (event) => {
     );
 });
 
-// Push Event Placeholder (Backend required for actual functionality)
+// Push Event: Display Notification
 self.addEventListener('push', (event) => {
-    const data = event.data ? event.data.json() : {};
+    let data = {};
+    if (event.data) {
+        try {
+            data = event.data.json();
+        } catch (e) {
+            data = { body: event.data.text() };
+        }
+    }
+
     const title = data.title || 'Habit Tracker';
     const options = {
-        body: data.body || 'New notification',
-        icon: '/static/img/mylogo.png',
-        badge: '/static/img/mylogo.png'
+        body: data.body || 'New update available',
+        icon: data.icon || '/static/img/mylogo.png',
+        badge: '/static/img/mylogo.png',
+        vibrate: [100, 50, 100],
+        data: {
+            url: data.url || '/'
+        }
     };
 
     event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Notification Click Event: Open App
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+
+    event.waitUntil(
+        clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+            // Check if app is already open
+            for (let i = 0; i < windowClients.length; i++) {
+                const client = windowClients[i];
+                if (client.url === '/' && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            // If not open, open new window
+            if (clients.openWindow) {
+                return clients.openWindow('/');
+            }
+        })
+    );
 });

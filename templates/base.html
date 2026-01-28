@@ -154,7 +154,7 @@
                                 <span class="time-chunk" id="clk-min">--</span>
                                 <span class="time-separator">:</span>
                                 <span class="time-chunk" id="clk-sec">--</span>
-                                <span class="time-ampm" id="clk-ampm">--</span>
+                                <span class="time-chunk" id="clk-ampm">--</span>
                             </div>
                             <div class="date-part" id="clk-date">--</div>
                         </div>
@@ -183,6 +183,8 @@
             {% block content %}{% endblock %}
         </main>
     </div>
+
+    {% block modals %}{% endblock %}
 
     <!-- Analog Clock Modal (Mobile Overlay) -->
     <div id="analog-clock-modal" class="clock-modal-overlay" onclick="toggleAnalogModal()">
@@ -539,13 +541,88 @@
             fetchPrayerTimes();
             {% endif %}
 
-            // Register Service Worker for PWA
+            // Register Service Worker for PWA & Push
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('/static/sw.js')
-                    .then(reg => console.log('Service Worker Registered!', reg))
+                    .then(reg => {
+                        console.log('Service Worker Registered!', reg);
+                        initializePushSubscription(reg);
+                    })
                     .catch(err => console.error('Service Worker Registration Failed:', err));
             }
         });
+
+        // Push Notification Logic
+        async function initializePushSubscription(reg) {
+            // Check if user is already subscribed
+            const sub = await reg.pushManager.getSubscription();
+            if (sub) {
+                // User is subscribed, ensure backend has it (optional sync)
+                // console.log('User is already subscribed:', sub);
+                sendSubscriptionToBackend(sub);
+            } else {
+                // Not subscribed, wait for user interaction or ask if permission granted
+                if (Notification.permission === 'granted') {
+                    subscribeUser(reg);
+                }
+            }
+        }
+
+        async function subscribeUser(reg) {
+            try {
+                const response = await fetch('/api/vapid_public_key');
+                const data = await response.json();
+                const applicationServerKey = urlB64ToUint8Array(data.publicKey);
+
+                const sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: applicationServerKey
+                });
+
+                console.log('User Subscribed:', sub);
+                sendSubscriptionToBackend(sub);
+            } catch (err) {
+                console.error('Failed to subscribe user: ', err);
+            }
+        }
+
+        async function sendSubscriptionToBackend(sub) {
+            await fetch('/api/subscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(sub)
+            });
+        }
+
+        // Utility for VAPID key conversion
+        function urlB64ToUint8Array(base64String) {
+            const padding = '='.repeat((4 - base64String.length % 4) % 4);
+            const base64 = (base64String + padding)
+                .replace(/\-/g, '+')
+                .replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        // Manual Trigger (e.g., from a button)
+        function enableNotifications() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(reg => {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            subscribeUser(reg);
+                            safeToast("Notifications enabled!", "success");
+                        }
+                    });
+                });
+            }
+        }
     </script>
 
 

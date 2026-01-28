@@ -17,7 +17,9 @@
 <div class="card" style="padding: 0;">
     <div id='calendar' style="padding: 1.5rem;"></div>
 </div>
+{% endblock %}
 
+{% block modals %}
 <!-- Day Details Modal -->
 <div id="dayModal" class="modal-overlay">
     <div class="modal-content">
@@ -32,6 +34,8 @@
         </div>
     </div>
 </div>
+{% endblock %}
+{% block scripts %}
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
@@ -91,10 +95,12 @@
 
     function closeModal() {
         modal.classList.remove('active');
+        document.body.style.overflow = '';
     }
 
     async function openDayModal(dateStr) {
         modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
         modalDate.textContent = 'Loading...';
         modalBody.innerHTML = '<p style="text-align: center; color: var(--text-muted);">Fetching Day Significance...</p>';
 

@@ -162,6 +162,16 @@ class IslamicEvent(db.Model):
     is_recurring_hijri = db.Column(db.Boolean, default=False)
     description = db.Column(db.Text, nullable=True)
 
+class PushSubscription(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    endpoint = db.Column(db.Text, nullable=False)
+    p256dh = db.Column(db.String(255), nullable=False)
+    auth = db.Column(db.String(255), nullable=False)
+    
+    # Check if subscription belongs to user
+    user = db.relationship('User', backref='push_subscriptions')
+
 # --- Audit Logging Model ---
 class AuditLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)

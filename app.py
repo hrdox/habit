@@ -30,7 +30,108 @@ from hijri_converter import Gregorian
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from config import Config
-from models import db, User, Habit, HabitLog, Schedule, RoutineItem, ScheduleLog, PrayerLog, Dua, Day, IslamicEvent
+from models import db, User, Habit, HabitLog, Schedule, RoutineItem, ScheduleLog, PrayerLog, Dua, Day, IslamicEvent, PushSubscription
+from pywebpush import webpush, WebPushException
+import json
+
+app = Flask(__name__)
+app.config.from_object(Config)
+
+# VAPID Keys (Generated)
+# Ideally, move these to environment variables for production security.
+VAPID_PUBLIC_KEY = "BNiHkralp_nu3psaKA7lpWqNFpOT0M_Mby0GczG4VJSHCOoeqx2v3-wKVzE0N7S4LUc5di78WClUahbIyq2zIR0"
+# Private key content usually loaded from env or file
+VAPID_PRIVATE_KEY = """-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgDkB0ffcehkJq9DkH
+sMqhSmi2YGoU5wE2hjYsEhw1neOhRANCAATYh5K2paf57t6bGigO5aVqjRaTk9DP
+zG8tBnMxuFSUhwjqHqsdr9/sClcxNDe0uC1HOXYu/FgpVGoWyMqtsyEd
+-----END PRIVATE KEY-----"""
+
+# VAPID Claims
+VAPID_CLAIMS = {
+    "sub": "mailto:admin@habittracker.com"
+}
+
+def send_push_notification(user_id, message_body, title="Habit Tracker"):
+    """
+    Sends a push notification to all subscriptions of a user.
+    """
+    subscriptions = PushSubscription.query.filter_by(user_id=user_id).all()
+    count = 0
+    
+    payload = json.dumps({
+        "title": title,
+        "body": message_body,
+        "icon": "/static/img/mylogo.png"
+    })
+    
+    for sub in subscriptions:
+        try:
+            subscription_info = {
+                "endpoint": sub.endpoint,
+                "keys": {
+                    "p256dh": sub.p256dh,
+                    "auth": sub.auth
+                }
+            }
+            webpush(
+                subscription_info=subscription_info,
+                data=payload,
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims=VAPID_CLAIMS
+            )
+            count += 1
+        except WebPushException as ex:
+            print(f"Push failed: {ex}")
+            # If 410 Gone, delete subscription
+            if ex.response and ex.response.status_code == 410:
+                db.session.delete(sub)
+                db.session.commit()
+        except Exception as e:
+            print(f"Push Error: {e}")
+            
+    print(f"Sent {count} notifications to user {user_id}")
+
+
+@app.route('/api/vapid_public_key')
+def get_vapid_key():
+    return jsonify({"publicKey": VAPID_PUBLIC_KEY})
+
+@app.route('/api/subscribe', methods=['POST'])
+@login_required
+def subscribe():
+    data = request.json
+    if not data:
+        return jsonify({"error": "No data"}), 400
+        
+    endpoint = data.get('endpoint')
+    keys = data.get('keys', {})
+    p256dh = keys.get('p256dh')
+    auth = keys.get('auth')
+    
+    if not endpoint or not p256dh or not auth:
+        return jsonify({"error": "Invalid subscription data"}), 400
+        
+    # Check if exists
+    existing = PushSubscription.query.filter_by(endpoint=endpoint).first()
+    if not existing:
+        new_sub = PushSubscription(
+            user_id=current_user.id,
+            endpoint=endpoint,
+            p256dh=p256dh,
+            auth=auth
+        )
+        db.session.add(new_sub)
+        db.session.commit()
+        
+    return jsonify({"status": "success"})
+
+@app.route('/test_push', methods=['POST'])
+@login_required
+def test_push():
+    """Trigger a test notification to self"""
+    send_push_notification(current_user.id, "This is a test notification from Habit Tracker!", "Test Alert")
+    return jsonify({"status": "sent"})
 
 app = Flask(__name__)
 app.config.from_object(Config)
