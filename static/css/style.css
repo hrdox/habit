@@ -71,15 +71,36 @@
     --text-muted: #64748b;
     --border-color: #e2e8f0;
 
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    /* iOS-Style Shadow System (4 elevations) */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 
+    /* iOS-Style Border Radius (5 sizes) */
+    --radius-xs: 0.375rem;
+    /* 6px */
     --radius-sm: 0.5rem;
+    /* 8px */
     --radius-md: 0.75rem;
+    /* 12px */
     --radius-lg: 1rem;
+    /* 16px */
+    --radius-xl: 1.5rem;
+    /* 24px */
 
-    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    /* Transition Speeds (3 speeds) */
+    --transition-fast: 150ms;
+    --transition-base: 300ms;
+    --transition-slow: 500ms;
+
+    /* Spring Easing for Premium Feel */
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-out-back: cubic-bezier(0.34, 1.2, 0.64, 1);
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* Legacy compatibility */
+    --transition: all var(--transition-base) var(--ease-smooth);
 }
 
 [data-theme="dark"] {
@@ -104,13 +125,52 @@
 }
 
 body {
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
     background-color: var(--bg-body);
     color: var(--text-main);
     line-height: 1.6;
     transition: background-color 0.3s ease, color 0.3s ease;
     min-height: 100vh;
     overflow-x: hidden;
+    /* Native App Feel */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+}
+
+/* Allow text selection on content that matters */
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+span,
+input,
+textarea,
+code,
+pre {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* Better scrolling */
+* {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure inputs in forms are select-able but standard UI is not */
+input,
+textarea,
+select {
+    user-select: text;
+    -webkit-user-select: text;
 }
 
 h1,
@@ -171,7 +231,16 @@ aside {
     color: var(--text-muted);
     text-decoration: none;
     font-weight: 500;
-    transition: var(--transition);
+    transition: all var(--transition-base) var(--ease-smooth);
+}
+
+.nav-link .nav-icon {
+    transition: transform var(--transition-base) var(--ease-spring);
+    display: inline-block;
+}
+
+.nav-link:hover .nav-icon {
+    transform: scale(1.1);
 }
 
 .nav-link:hover {
@@ -183,6 +252,11 @@ aside {
     background-color: var(--primary);
     color: white;
     box-shadow: 0 4px 12px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.4);
+    transform: scale(1.02);
+}
+
+.nav-link.active .nav-icon {
+    transform: scale(1.15);
 }
 
 /* --- Main Content --- */
@@ -192,6 +266,13 @@ main {
     padding-bottom: 5rem;
 }
 
+@media (max-width: 768px) {
+    main {
+        padding: 1rem;
+        /* Reduce padding to make cards wider on mobile */
+    }
+}
+
 .top-bar {
     display: flex;
     justify-content: space-between;
@@ -199,6 +280,88 @@ main {
     margin-bottom: 2rem;
     gap: 1rem;
     flex-wrap: wrap;
+    /* Sticky Positioning */
+    position: sticky;
+    top: 1rem;
+    z-index: 100;
+    /* Visual styles moved to ::after to support background mask */
+    background: transparent;
+    padding: 0.75rem 1.5rem;
+    isolation: isolate;
+    /* Create new stacking context */
+}
+
+/* 1. Opaque Mask to hide content scrolling behind */
+.top-bar::before {
+    content: '';
+    position: absolute;
+    top: -2rem;
+    /* Extend up to cover top gap */
+    left: -2rem;
+    /* Cover left padding */
+    right: -2rem;
+    /* Cover right padding */
+    bottom: 30%;
+    /* Start mask from 2/3 down (leaving 30% glass at bottom) */
+    background: var(--bg-body);
+    z-index: -2;
+    /* Behind everything */
+}
+
+@media (max-width: 768px) {
+    .top-bar::before {
+        left: -1rem;
+        right: -1rem;
+    }
+}
+
+/* 2. Glassmorphism Card (Visuals) */
+.top-bar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    /* Fill parent */
+    border-radius: var(--radius-xl);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: var(--shadow-md);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    z-index: -1;
+    /* Behind content but in front of mask */
+}
+
+/* Seamless Buttons in Top Bar */
+.top-bar .btn-outline {
+    border: none;
+    background: transparent !important;
+    box-shadow: none;
+    padding: 0.5rem;
+    color: var(--text-main);
+    font-size: 1.25rem;
+}
+
+.top-bar .btn-outline:hover {
+    background: rgba(0, 0, 0, 0.05) !important;
+    transform: scale(1.1);
+}
+
+/* Schedule Card Refinements */
+#schedule-card::before {
+    display: none;
+    /* Remove top gradient border */
+}
+
+#schedule-card:hover {
+    transform: none;
+    /* Remove hover lift */
+    box-shadow: var(--shadow-md);
+    /* Keep original shadow */
+}
+
+[data-theme="dark"] .top-bar::after {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .text-muted {
@@ -216,17 +379,37 @@ main {
     background-color: var(--bg-card);
     border-radius: var(--radius-lg);
     padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    /* Ensure separation when stacked */
     border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-sm);
-    transition: var(--transition);
+    box-shadow: var(--shadow-md);
+    transition: all var(--transition-base) var(--ease-smooth);
     position: relative;
     overflow: hidden;
 }
 
+/* iOS-style gradient top border (Matching Primary Button) */
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    /* Slightly thicker for visibility */
+    background: linear-gradient(135deg, var(--primary), hsl(250, 84%, 50%));
+    opacity: 0;
+    transition: opacity var(--transition-base) var(--ease-smooth);
+}
+
 .card:hover {
-    box-shadow: var(--shadow-md);
-    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
     border-color: hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.3);
+}
+
+.card:hover::before {
+    opacity: 1;
 }
 
 .card h3 {
@@ -243,26 +426,61 @@ main {
     align-items: center;
     justify-content: center;
     padding: 0.6rem 1.2rem;
+    min-height: 44px;
+    /* Apple Human Interface Guidelines */
     border-radius: var(--radius-md);
     font-family: 'Plus Jakarta Sans', sans-serif;
     font-weight: 600;
     font-size: 0.9rem;
     cursor: pointer;
     border: none;
-    transition: var(--transition);
+    transition: all var(--transition-base) var(--ease-smooth);
     text-decoration: none;
+    touch-action: manipulation;
+    position: relative;
+    overflow: hidden;
+}
+
+/* iOS-style button ripple effect */
+.btn::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    transform: translate(-50%, -50%);
+    transition: width var(--transition-slow) var(--ease-smooth), height var(--transition-slow) var(--ease-smooth);
+}
+
+.btn:active::after {
+    width: 300px;
+    height: 300px;
+}
+
+/* iOS-style press animation */
+.btn:active {
+    transform: scale(0.96);
 }
 
 .btn-primary {
     background: linear-gradient(135deg, var(--primary), hsl(250, 84%, 50%));
     color: white;
-    box-shadow: 0 4px 6px -1px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.4);
+    box-shadow: 0 4px 12px -2px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .btn-primary:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 6px 8px -1px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.5);
-    filter: brightness(1.1);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 16px -4px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.6);
+    filter: brightness(1.05);
+}
+
+.btn-primary:active {
+    transform: scale(0.96);
+    box-shadow: 0 2px 4px -1px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.4);
 }
 
 .btn-outline {
@@ -532,14 +750,16 @@ textarea:focus {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 2000;
     opacity: 0;
     visibility: hidden;
-    transition: all 0.3s ease;
+    transition: all var(--transition-base) var(--ease-smooth);
 }
 
 .modal-overlay.active {
@@ -550,19 +770,41 @@ textarea:focus {
 .modal-content {
     background-color: var(--bg-card);
     padding: 2rem;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-xl);
     width: 90%;
     max-width: 600px;
     max-height: 80vh;
     overflow-y: auto;
     position: relative;
-    box-shadow: var(--shadow-lg);
-    transform: scale(0.9);
-    transition: all 0.3s ease;
+    box-shadow: var(--shadow-xl);
+    transform: scale(0.95);
+    transition: all var(--transition-base) var(--ease-out-back);
 }
 
 .modal-overlay.active .modal-content {
     transform: scale(1);
+}
+
+/* iOS Bottom Sheet for Mobile */
+@media (max-width: 768px) {
+    .modal-overlay {
+        align-items: flex-end;
+    }
+
+    .modal-content {
+        width: 100%;
+        max-width: 100%;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        margin: 0;
+        transform: translateY(100%);
+        transition: transform var(--transition-slow) var(--ease-spring);
+        padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+    }
+
+    .modal-overlay.active .modal-content {
+        transform: translateY(0);
+    }
 }
 
 .modal-header {
@@ -1117,6 +1359,67 @@ textarea:focus {
     .dashboard-grid .analog-clock-card {
         display: none !important;
     }
+}
+
+/* --- Floating Action Button (FAB) --- */
+.fab {
+    position: fixed;
+    bottom: calc(2rem + env(safe-area-inset-bottom));
+    right: 2rem;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    box-shadow: var(--shadow-xl);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.75rem;
+    border: none;
+    cursor: pointer;
+    z-index: 100;
+    transition: transform var(--transition-base) var(--ease-spring), box-shadow var(--transition-base) var(--ease-smooth);
+    /* Spring animation on entry */
+    animation: fab-enter 0.6s var(--ease-spring) backwards 0.5s;
+}
+
+.fab:hover {
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 0 20px 40px -5px hsla(var(--primary-h), var(--primary-s), var(--primary-l), 0.6);
+}
+
+.fab:active {
+    transform: scale(0.9);
+}
+
+@keyframes fab-enter {
+    from {
+        transform: scale(0) rotate(-180deg);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1) rotate(0);
+        opacity: 1;
+    }
+}
+
+/* --- Page Transitions --- */
+@keyframes page-enter {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+main {
+    animation: page-enter 0.5s var(--ease-out-back) forwards;
 }
 
 .modal-time-details {
