@@ -1,6 +1,6 @@
 {
-  "name": "Habit Tracker",
-  "short_name": "HabitTracker",
+  "name": "HR",
+  "short_name": "Habit Tracker",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
