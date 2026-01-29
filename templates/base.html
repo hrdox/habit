@@ -267,12 +267,7 @@
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
     <script src="{{ url_for('static', filename='js/scripts.js') }}"></script>
     <script>
-        /*
-        // Internal Pinger to prevent Render spin-down
-        setInterval(function () {
-            fetch('/ping').then(response => console.log("Keep-alive ping sent")).catch(err => console.error("Ping failed"));
-        }, 300000); // 5 minutes
-        */
+
         // Advanced Device & Network Discovery
         {% if current_user.is_authenticated %}
         async function syncDeviceIdentity() {
