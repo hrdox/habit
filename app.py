@@ -584,29 +584,29 @@ def admin_cleanup_guests():
 def ping():
     return "PONG", 200
 
-def keep_alive():
-    """
-    Pings the app to prevent Render free instance from sleeping.
-    """
-    # Wait for app to boot
-    time.sleep(10)
-    url = os.environ.get('RENDER_EXTERNAL_URL')
-    if not url:
-        print("Keep-alive: RENDER_EXTERNAL_URL not found, skipping internal ping.")
-        return
-        
-    print(f"Keep-alive: Monitoring {url}")
-    while True:
-        try:
-            requests.get(f"{url}/ping")
-            print("Keep-alive: Ping successful")
-        except Exception as e:
-            print(f"Keep-alive: Ping failed: {e}")
-        time.sleep(600) # Ping every 10 minutes
+# def keep_alive():
+#     """
+#     Pings the app to prevent Render free instance from sleeping.
+#     """
+#     # Wait for app to boot
+#     time.sleep(10)
+#     url = os.environ.get('RENDER_EXTERNAL_URL')
+#     if not url:
+#         print("Keep-alive: RENDER_EXTERNAL_URL not found, skipping internal ping.")
+#         return
+#         
+#     print(f"Keep-alive: Monitoring {url}")
+#     while True:
+#         try:
+#             requests.get(f"{url}/ping")
+#             print("Keep-alive: Ping successful")
+#         except Exception as e:
+#             print(f"Keep-alive: Ping failed: {e}")
+#         time.sleep(600) # Ping every 10 minutes
 
-# Start the keep-alive thread
-if os.environ.get('RENDER'):
-    threading.Thread(target=keep_alive, daemon=True).start()
+# # Start the keep-alive thread
+# if os.environ.get('RENDER'):
+#     threading.Thread(target=keep_alive, daemon=True).start()
 
 @app.route('/')
 def index():
