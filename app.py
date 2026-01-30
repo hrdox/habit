@@ -12,6 +12,7 @@ from functools import wraps
 from collections import defaultdict
 
 import requests
+import traceback
 from bs4 import BeautifulSoup
 from PIL import Image
 try:
@@ -138,6 +139,10 @@ def test_push():
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=2, x_proto=2, x_host=2, x_port=2, x_prefix=2)
 
 db.init_app(app)
+with app.app_context():
+    db.create_all()
+    print("Database tables ensured.")
+
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
@@ -190,6 +195,14 @@ def sync_local_ip():
     if local_ip or ipv6 or fingerprint:
         db.session.commit()
     return jsonify({"status": "success"})
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    # Log the traceback
+    print(f"ERROR: {e}")
+    traceback.print_exc()
+    # If it's a 500, return a more detailed error for debugging (only in development or if desired)
+    return "Internal Server Error (Check logs for traceback)", 500
 
 @app.context_processor
 def inject_now():
