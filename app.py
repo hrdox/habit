@@ -133,9 +133,6 @@ def test_push():
     send_push_notification(current_user.id, "This is a test notification from Habit Tracker!", "Test Alert")
     return jsonify({"status": "sent"})
 
-app = Flask(__name__)
-app.config.from_object(Config)
-
 # Correctly handle proxy headers (Client -> Cloudflare -> Render -> App)
 # We trust 2 proxies: Render and Cloudflare
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=2, x_proto=2, x_host=2, x_port=2, x_prefix=2)
